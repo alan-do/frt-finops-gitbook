@@ -1,3 +1,8 @@
+---
+title: "Câu hỏi cho CTO"
+description: "Các vấn đề cần chốt Scope"
+---
+
 # Các vấn đề cần giải quyết (CTO Review)
 
 Trong bước **"Anh Review"** của quy trình, team FinOps cần đưa ra các vấn đề đang là "nút thắt cổ chai" (bottleneck) cản trở việc hoàn thành dự án trong Quý 3/2026. 
