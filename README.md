@@ -1,0 +1,26 @@
+# FinOps - Quản lý Chi phí & Tối ưu Tài nguyên Ban Công nghệ
+
+Chào mừng bạn đến với tài liệu hướng dẫn và vận hành FinOps dành cho Ban Công nghệ thuộc FPT Retail (FRT).
+
+## Bối cảnh & Vấn đề
+
+Ban Công nghệ theo tập đoàn FPT đang triển khai hàng chục dự án công nghệ lớn nhỏ khác nhau, bao gồm:
+* AI / LLM
+* Cloud & Platform
+* Data
+* Mobile & Web Apps
+
+Đi kèm với sự phát triển nhanh chóng này là **chi phí infrastructure tăng nhanh**, bao gồm cloud compute, storage, licensing, LLM API, GPU, network.
+
+**Vấn đề hiện tại:**
+Hiện tại, chúng ta chưa có hệ thống quản lý chi phí tập trung cho **tất cả các dự án** thuộc Ban Công nghệ. Điều này dẫn đến các khó khăn:
+1. Khó kiểm soát ngân sách tổng thể.
+2. Khó đánh giá ROI (Return on Investment) của từng dự án.
+3. Bỏ lỡ nhiều cơ hội tối ưu tài nguyên dùng chung.
+
+## Tầm nhìn FinOps tại FRT
+
+Tài liệu này được xây dựng dựa trên tiêu chuẩn của [FinOps Foundation](https://www.finops.org/) kết hợp với bối cảnh thực tế tại FRT, nhằm mục đích:
+* Đưa ra một mô hình hoạt động (operating model) chuẩn mực cho việc quản lý chi phí cloud và hạ tầng.
+* Thúc đẩy văn hóa hợp tác giữa các nhóm Engineering, Finance, và Business.
+* Đảm bảo tính minh bạch, có trách nhiệm và tối đa hóa giá trị kinh doanh (Business Value) từ các khoản đầu tư công nghệ.

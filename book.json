@@ -1,0 +1,19 @@
+{
+    "title": "FRT FinOps Framework",
+    "description": "Tài liệu quản lý chi phí & tối ưu tài nguyên Ban Công nghệ FPT Retail",
+    "author": "FinOps Team",
+    "language": "vi",
+    "plugins": [
+        "-sharing",
+        "search",
+        "fontsettings",
+        "theme-default"
+    ],
+    "pluginsConfig": {
+        "fontsettings": {
+            "theme": "white",
+            "family": "sans",
+            "size": 2
+        }
+    }
+}
