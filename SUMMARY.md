@@ -10,3 +10,7 @@
   * [Theo dõi & Phân bổ Chi phí](scope/cost-tracking-and-allocation.md)
   * [Tối ưu hóa Tài nguyên](scope/resource-optimization.md)
   * [Quản lý Ngân sách & Hợp đồng](scope/budget-and-vendor-management.md)
+* [Quy trình Phát triển Công cụ](development-process/README.md)
+  * [Workflow 6 Bước (Chuẩn CTO)](development-process/6-steps-workflow.md)
+  * [Roadmap, Estimation & Rủi ro](development-process/roadmap-and-estimation.md)
+  * [Các vấn đề cần giải quyết (CTO Review)](development-process/cto-review-questions.md)
