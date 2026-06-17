@@ -26,92 +26,94 @@
       "url": "en"
     }
   ],
-  "navigation": [
-    {
-      "tab": "vi",
-      "group": "Giới thiệu",
-      "pages": ["vi/README"]
-    },
-    {
-      "tab": "vi",
-      "group": "Tổng quan dự án",
-      "pages": [
-        "vi/project-overview/README",
-        "vi/project-overview/team-and-stakeholders",
-        "vi/project-overview/goals-and-kpis"
-      ]
-    },
-    {
-      "tab": "vi",
-      "group": "FinOps Framework",
-      "pages": [
-        "vi/finops-framework/README",
-        "vi/finops-framework/principles-and-phases"
-      ]
-    },
-    {
-      "tab": "vi",
-      "group": "Phạm vi triển khai (Scope)",
-      "pages": [
-        "vi/scope/README",
-        "vi/scope/cost-tracking-and-allocation",
-        "vi/scope/resource-optimization",
-        "vi/scope/budget-and-vendor-management"
-      ]
-    },
-    {
-      "tab": "vi",
-      "group": "Quy trình Phát triển Công cụ",
-      "pages": [
-        "vi/development-process/README",
-        "vi/development-process/6-steps-workflow",
-        "vi/development-process/roadmap-and-estimation",
-        "vi/development-process/cto-review-questions"
-      ]
-    },
-    {
-      "tab": "en",
-      "group": "Introduction",
-      "pages": ["en/README"]
-    },
-    {
-      "tab": "en",
-      "group": "Project Overview",
-      "pages": [
-        "en/project-overview/README",
-        "en/project-overview/team-and-stakeholders",
-        "en/project-overview/goals-and-kpis"
-      ]
-    },
-    {
-      "tab": "en",
-      "group": "FinOps Framework",
-      "pages": [
-        "en/finops-framework/README",
-        "en/finops-framework/principles-and-phases"
-      ]
-    },
-    {
-      "tab": "en",
-      "group": "Implementation Scope",
-      "pages": [
-        "en/scope/README",
-        "en/scope/cost-tracking-and-allocation",
-        "en/scope/resource-optimization",
-        "en/scope/budget-and-vendor-management"
-      ]
-    },
-    {
-      "tab": "en",
-      "group": "Development Process",
-      "pages": [
-        "en/development-process/README",
-        "en/development-process/6-steps-workflow",
-        "en/development-process/roadmap-and-estimation",
-        "en/development-process/cto-review-questions"
-      ]
-    }
-  ],
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "vi",
+        "groups": [
+          {
+            "group": "Giới thiệu",
+            "pages": ["vi/README"]
+          },
+          {
+            "group": "Tổng quan dự án",
+            "pages": [
+              "vi/project-overview/README",
+              "vi/project-overview/team-and-stakeholders",
+              "vi/project-overview/goals-and-kpis"
+            ]
+          },
+          {
+            "group": "FinOps Framework",
+            "pages": [
+              "vi/finops-framework/README",
+              "vi/finops-framework/principles-and-phases"
+            ]
+          },
+          {
+            "group": "Phạm vi triển khai (Scope)",
+            "pages": [
+              "vi/scope/README",
+              "vi/scope/cost-tracking-and-allocation",
+              "vi/scope/resource-optimization",
+              "vi/scope/budget-and-vendor-management"
+            ]
+          },
+          {
+            "group": "Quy trình Phát triển Công cụ",
+            "pages": [
+              "vi/development-process/README",
+              "vi/development-process/6-steps-workflow",
+              "vi/development-process/roadmap-and-estimation",
+              "vi/development-process/cto-review-questions"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "en",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": ["en/README"]
+          },
+          {
+            "group": "Project Overview",
+            "pages": [
+              "en/project-overview/README",
+              "en/project-overview/team-and-stakeholders",
+              "en/project-overview/goals-and-kpis"
+            ]
+          },
+          {
+            "group": "FinOps Framework",
+            "pages": [
+              "en/finops-framework/README",
+              "en/finops-framework/principles-and-phases"
+            ]
+          },
+          {
+            "group": "Implementation Scope",
+            "pages": [
+              "en/scope/README",
+              "en/scope/cost-tracking-and-allocation",
+              "en/scope/resource-optimization",
+              "en/scope/budget-and-vendor-management"
+            ]
+          },
+          {
+            "group": "Development Process",
+            "pages": [
+              "en/development-process/README",
+              "en/development-process/6-steps-workflow",
+              "en/development-process/roadmap-and-estimation",
+              "en/development-process/cto-review-questions"
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "footerSocials": {
     "github": "https://github.com/alan-do/frt-finops-gitbook"
   }
