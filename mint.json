@@ -1,7 +1,6 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "FRT FinOps Framework",
-
   "colors": {
     "primary": "#F26522",
     "light": "#F9A01B",
@@ -29,12 +28,12 @@
   ],
   "navigation": [
     {
-      "tab": "Tiếng Việt",
+      "tab": "vi",
       "group": "Giới thiệu",
       "pages": ["vi/README"]
     },
     {
-      "tab": "Tiếng Việt",
+      "tab": "vi",
       "group": "Tổng quan dự án",
       "pages": [
         "vi/project-overview/README",
@@ -43,7 +42,7 @@
       ]
     },
     {
-      "tab": "Tiếng Việt",
+      "tab": "vi",
       "group": "FinOps Framework",
       "pages": [
         "vi/finops-framework/README",
@@ -51,7 +50,7 @@
       ]
     },
     {
-      "tab": "Tiếng Việt",
+      "tab": "vi",
       "group": "Phạm vi triển khai (Scope)",
       "pages": [
         "vi/scope/README",
@@ -61,7 +60,7 @@
       ]
     },
     {
-      "tab": "Tiếng Việt",
+      "tab": "vi",
       "group": "Quy trình Phát triển Công cụ",
       "pages": [
         "vi/development-process/README",
@@ -71,12 +70,12 @@
       ]
     },
     {
-      "tab": "English",
+      "tab": "en",
       "group": "Introduction",
       "pages": ["en/README"]
     },
     {
-      "tab": "English",
+      "tab": "en",
       "group": "Project Overview",
       "pages": [
         "en/project-overview/README",
@@ -85,7 +84,7 @@
       ]
     },
     {
-      "tab": "English",
+      "tab": "en",
       "group": "FinOps Framework",
       "pages": [
         "en/finops-framework/README",
@@ -93,7 +92,7 @@
       ]
     },
     {
-      "tab": "English",
+      "tab": "en",
       "group": "Implementation Scope",
       "pages": [
         "en/scope/README",
@@ -103,7 +102,7 @@
       ]
     },
     {
-      "tab": "English",
+      "tab": "en",
       "group": "Development Process",
       "pages": [
         "en/development-process/README",
