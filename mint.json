@@ -1,11 +1,7 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "FRT FinOps Framework",
-  "logo": {
-    "dark": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/vi/project-overview/logo.png",
-    "light": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/vi/project-overview/logo.png"
-  },
-  "favicon": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/vi/project-overview/logo.png",
+
   "colors": {
     "primary": "#F26522",
     "light": "#F9A01B",
