@@ -1,6 +1,11 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "FRT FinOps Framework",
+  "logo": {
+    "dark": "/logo.svg",
+    "light": "/logo.svg"
+  },
+  "favicon": "/favicon.svg",
   "colors": {
     "primary": "#F26522",
     "light": "#F9A01B",
