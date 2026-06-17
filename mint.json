@@ -2,10 +2,10 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "FRT FinOps Framework",
   "logo": {
-    "dark": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/project-overview/logo.png",
-    "light": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/project-overview/logo.png"
+    "dark": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/vi/project-overview/logo.png",
+    "light": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/vi/project-overview/logo.png"
   },
-  "favicon": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/project-overview/logo.png",
+  "favicon": "https://raw.githubusercontent.com/alan-do/frt-finops-gitbook/main/vi/project-overview/logo.png",
   "colors": {
     "primary": "#F26522",
     "light": "#F9A01B",
@@ -21,44 +21,99 @@
       "url": "https://fptretail.com.vn/"
     }
   ],
+  "tabs": [
+    {
+      "name": "Tiếng Việt",
+      "url": "vi"
+    },
+    {
+      "name": "English",
+      "url": "en"
+    }
+  ],
   "navigation": [
     {
+      "tab": "Tiếng Việt",
       "group": "Giới thiệu",
-      "pages": [
-        "README"
-      ]
+      "pages": ["vi/README"]
     },
     {
+      "tab": "Tiếng Việt",
       "group": "Tổng quan dự án",
       "pages": [
-        "project-overview/README",
-        "project-overview/team-and-stakeholders",
-        "project-overview/goals-and-kpis"
+        "vi/project-overview/README",
+        "vi/project-overview/team-and-stakeholders",
+        "vi/project-overview/goals-and-kpis"
       ]
     },
     {
+      "tab": "Tiếng Việt",
       "group": "FinOps Framework",
       "pages": [
-        "finops-framework/README",
-        "finops-framework/principles-and-phases"
+        "vi/finops-framework/README",
+        "vi/finops-framework/principles-and-phases"
       ]
     },
     {
+      "tab": "Tiếng Việt",
       "group": "Phạm vi triển khai (Scope)",
       "pages": [
-        "scope/README",
-        "scope/cost-tracking-and-allocation",
-        "scope/resource-optimization",
-        "scope/budget-and-vendor-management"
+        "vi/scope/README",
+        "vi/scope/cost-tracking-and-allocation",
+        "vi/scope/resource-optimization",
+        "vi/scope/budget-and-vendor-management"
       ]
     },
     {
+      "tab": "Tiếng Việt",
       "group": "Quy trình Phát triển Công cụ",
       "pages": [
-        "development-process/README",
-        "development-process/6-steps-workflow",
-        "development-process/roadmap-and-estimation",
-        "development-process/cto-review-questions"
+        "vi/development-process/README",
+        "vi/development-process/6-steps-workflow",
+        "vi/development-process/roadmap-and-estimation",
+        "vi/development-process/cto-review-questions"
+      ]
+    },
+    {
+      "tab": "English",
+      "group": "Introduction",
+      "pages": ["en/README"]
+    },
+    {
+      "tab": "English",
+      "group": "Project Overview",
+      "pages": [
+        "en/project-overview/README",
+        "en/project-overview/team-and-stakeholders",
+        "en/project-overview/goals-and-kpis"
+      ]
+    },
+    {
+      "tab": "English",
+      "group": "FinOps Framework",
+      "pages": [
+        "en/finops-framework/README",
+        "en/finops-framework/principles-and-phases"
+      ]
+    },
+    {
+      "tab": "English",
+      "group": "Implementation Scope",
+      "pages": [
+        "en/scope/README",
+        "en/scope/cost-tracking-and-allocation",
+        "en/scope/resource-optimization",
+        "en/scope/budget-and-vendor-management"
+      ]
+    },
+    {
+      "tab": "English",
+      "group": "Development Process",
+      "pages": [
+        "en/development-process/README",
+        "en/development-process/6-steps-workflow",
+        "en/development-process/roadmap-and-estimation",
+        "en/development-process/cto-review-questions"
       ]
     }
   ],
