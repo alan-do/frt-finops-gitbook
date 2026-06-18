@@ -1,26 +1,28 @@
 ---
 title: "CTO Questions"
-description: "Key issues to resolve"
+description: "Key Questions Regarding Scope, MVPs, and Boundaries"
 ---
 
-# Các vấn đề cần giải quyết (CTO Review)
+# Key Questions (CTO Review)
 
-Trong bước **"Anh Review"** của quy trình, team FinOps cần đưa ra các vấn đề đang là "nút thắt cổ chai" (bottleneck) cản trở việc hoàn thành dự án trong Quý 3/2026. 
+To ensure the FinOps project is on the right track and meets expectations for Q3/2026, the following questions need to be clarified regarding project boundaries, progress, and execution authority.
 
-Dưới đây là 4 vấn đề cốt lõi cần CTO cho chỉ thị giải quyết (Mandate & Solution Request):
+## 1. Project Boundary & Scope
+* **Q:** What is the exact boundary of the FinOps system in this phase? Should the system stop at Observability, or must it include Actionability (e.g., automatically pausing/limiting resources when budgets are exceeded)?
+* **Q:** Who are the primary end-users of the system during the MVP phase? Are they CTO/CFOs for high-level overviews, or Product Owners/Dev Leads for day-to-day cost optimization?
 
-## 1. Vấn đề truy cập Dữ liệu (Data Access)
-* **Vấn đề:** Đi xin quyền access lẻ tẻ vào Cloud/API của từng team sẽ làm chậm tiến độ Sprint 1. Team FinOps tốn quá nhiều thời gian cho việc phân quyền.
-* **Request:** Nhờ anh ra Policy (chỉ thị) yêu cầu các Team Lead chủ động cung cấp Read-only/Billing Access tập trung cho team FinOps trước ngày 23/06.
+## 2. Specific MVPs and Immediate Features
+* **Q:** With the current 1.5 FTE resources, which MVP features are the highest priority?
+  * Proposed MVP 1: **Centralized Dashboard** (Tracking costs for the 1-2 largest services, such as AWS and OpenAI).
+  * Proposed MVP 2: **Basic Alert System** (Sending alerts via Slack when costs spike significantly compared to the baseline).
+* **Q:** Is it permissible to use available commercial LLMs (GPT-4/Claude) via API to quickly develop automated reporting features, rather than spending time training an internal model?
 
-## 2. Vấn đề Nguồn lực (1.5 FTE) & Scope bản Demo
-* **Vấn đề:** Nguồn lực 1.5 người quá mỏng để làm Full-scope kịp ngày Demo (18/07). 
-* **Request:** Xin chốt MVP Demo chỉ tracking 1-2 dịch vụ tốn tiền nhất (VD: LLM API, AWS) và cho phép dùng API của LLM thương mại (GPT/Claude) để tự động hóa báo cáo, thay vì tốn thời gian tự train AI model.
+## 3. Project Progress (Timeline & Milestones)
+* **Q:** What is the expected timeline for the first Demo version? If mid-July (July 18th) is targeted for the Demo, does the MVP scope proposed above meet expectations?
+* **Q:** Are there mandatory requirements for rolling out to all teams across the company, or should the Q3 rollout be limited to a pilot run with 1-2 specific teams?
 
-## 3. Vấn đề Đo lường ROI
-* **Vấn đề:** FinOps tự tính được Cost, nhưng thiếu metric về **Business Value** (Giá trị tạo ra) của các dự án AI để đưa vào báo cáo ROI.
-* **Request:** Cần anh chỉ định đầu mối/quy trình để các team cung cấp data Value này (số user, doanh thu, giờ tiết kiệm được) để ráp vào công thức ROI. Team FinOps không tự "bịa" được số này.
+## 4. Data Access & Permissions
+* **Q:** What is the mechanism for the FinOps team to acquire centralized, Read-only/Billing Access to other teams' Cloud/SaaS accounts quickly? A standardized top-down process is needed to prevent fragmented permission requests from slowing down progress.
 
-## 4. Vấn đề Thẩm quyền Xử lý
-* **Vấn đề:** Chưa rõ thẩm quyền hành động khi hệ thống AI phát hiện bất thường hoặc chạm mốc 100% Budget. Việc này ảnh hưởng đến thiết kế của *AI Alert System*.
-* **Request:** Xin anh định hướng: Hệ thống của FinOps chỉ dừng ở mức **Cảnh báo (Notify)** lên Slack hay được cấp quyền **Can thiệp tự động (Pause/Kill resource)**?
+## 5. Measuring ROI & Business Value
+* **Q:** To calculate the ROI of AI projects, FinOps can track the Cost, but Business Value metrics (such as active users, revenue generated, hours saved) are required. Where will this data be sourced from, and what is the coordination process with product teams?
