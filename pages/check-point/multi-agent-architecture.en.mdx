@@ -1,16 +1,16 @@
 import { Callout, Cards, Card, Steps } from 'nextra/components'
 
-# Multi-Agent Automation Architecture Proposal
+# Multi-Agent Architecture powered by FOCUS
 
 <Callout type="info" emoji="🤖">
-  **Autonomous FinOps Vision:** Instead of relying on rigid cronjob scripts, the FRT FinOps system will be designed upon a **Multi-Agent** architecture. The collaboration of multiple specialized AI Agents helps automate the entire workflow from data ingestion, anomaly detection, root cause analysis, to providing optimization recommendations.
+  **Autonomous FinOps Vision:** The FRT FinOps system eschews rigid data processing scripts in favor of a **Multi-Agent** architecture operating seamlessly on a foundation of data normalized by the **FOCUS Open Standard**. This combination creates a "Virtual Team" capable of communicating in a universal data language, automating the entire workflow from ingestion and anomaly detection to root-cause analysis.
 </Callout>
 
-The Multi-Agent architecture allows the system to operate as a "Virtual FinOps Team", where each Agent takes on a specific role, communicates with others, and autonomously makes decisions based on real-time data.
+The Multi-Agent architecture enables the system to operate autonomously, where each Agent assumes a specific role and makes decisions based on real-time data extracted from the FOCUS Data Lake.
 
-## 1. Architecture Diagram (Multi-Agent Workflow)
+## 1. Architecture Diagram (Multi-Agent & FOCUS Workflow)
 
-Below is the communication model between Agents within the FinOps system:
+Below is the communication model between Agents in the FinOps system, centered around the FOCUS Data Lake:
 
 ```mermaid
 graph TD
@@ -25,71 +25,72 @@ graph TD
     A3[💡 Optimization Analyst Agent]:::agent
     A4[🗣️ Reporting & Comm Agent]:::agent
 
-    DB[(Central Data Lake)]:::db
-    Slack[Slack / Email]:::output
+    DB[(FOCUS Central Data Lake)]:::db
+    Channel[Internal Channel / Email]:::output
 
     Orchestrator --> A1
     Orchestrator --> A2
     Orchestrator --> A3
     Orchestrator --> A4
 
-    A1 -->|Pull Billing & API Usage| DB
-    DB -->|Stream Data| A2
-    DB -->|Historical Data| A3
+    A1 -->|Pull Billing & Transform to FOCUS standard| DB
+    DB -->|Stream normalized BilledCost| A2
+    DB -->|Query Historical FOCUS Data| A3
 
     A2 -->|Detect Cost Spike!| A4
-    A3 -->|Recommend Reserved Instance| A4
+    A3 -->|Optimization Proposal (ResourceName)| A4
 
-    A4 -->|Natural Language Report| Slack
+    A4 -->|Natural Language Report| Channel
 ```
 
-## 2. Roles of Each Automation Agent
+## 2. The Role of Each Automation Agent in the FOCUS Ecosystem
 
-The system comprises 4 primary Agents, working in parallel and interacting with each other:
+The system comprises 4 primary Agents, guided by the FOCUS standard for interaction:
 
 <Cards>
   <Card icon="🕵️" title="Data Ingestion Agent" href="#">
-    **Mission:** Automate data collection.  
-    This Agent continuously makes API calls to AWS, Azure, and OpenAI to pull usage logs. It possesses self-healing capabilities (retries) when hitting API rate limits or encountering corrupted payload data.
+    **Task:** Universal Data Translator.  
+    Continuously calls APIs to AWS, Azure, and OpenAI to pull usage logs. It automatically **transforms** vendor-specific data columns into the precise format of the FOCUS column library (e.g., aggregating into `BilledCost` and `ProviderName`).
   </Card>
   <Card icon="🚨" title="Anomaly Detection Agent" href="#">
-    **Mission:** The Budget "Gatekeeper".  
-    Runs machine learning statistical models to analyze data in real-time. If a service's cost spikes deviating significantly from the baseline, this Agent immediately triggers an alarm.
+    **Task:** Budget Gatekeeper.  
+    Because the data is already normalized, this Agent only needs to run a single Machine Learning model on the `BilledCost` column to monitor the entire organization in real-time. It triggers an alarm if deviations from the baseline are detected.
   </Card>
   <Card icon="💡" title="Optimization Analyst Agent" href="#">
-    **Mission:** Cost Optimization Advisor.  
-    Scans historical data to locate "idle resources" or formulate saving strategies (e.g., "If we purchase an AWS Savings Plan right now, Team A will save 30% next month").
+    **Task:** Cost Optimization Advisor.  
+    Scans historical FOCUS data to find idle resources based on standard tags (`ChargeCategory`, `ResourceName`) and proposes saving strategies (e.g., "Purchase a Savings Plan for this resource bucket").
   </Card>
   <Card icon="🗣️" title="Reporting & Comm Agent" href="#">
-    **Mission:** The Spokesperson (GenAI).  
-    Utilizes LLMs (GPT-4o/Claude) to translate dry metrics into human-readable language. Receives signals from other Agents and drafts friendly reports/alerts sent to Slack.
+    **Task:** GenAI Spokesperson.  
+    Configured with Prompts designed to read and understand FOCUS data tables. Receives signals from other Agents, explains the reasons for cost increases, and writes friendly reports sent to Internal Chat Channels.
   </Card>
 </Cards>
 
-## 3. Practical Workflow: Incident Handling
+## 3. Practical Workflow: Incident Handling on FOCUS Data
 
-To better visualize, below is a Workflow when an unexpected cost spike occurs, illustrating how the Agents automatically coordinate:
+To better visualize the power of combining Multi-Agent and FOCUS, below is the workflow when a cost spike incident occurs:
 
 <Steps>
-### Step 1: Data Collection (Continuous)
-The **Data Ingestion Agent** detects that Product Team X's API Usage for OpenAI services surged in the early hours. It pushes the raw data into the Data Lake.
+### Step 1: Continuous Ingestion & Normalization
+The **Data Ingestion Agent** detects a spike in API Usage by Product Team X for OpenAI services. It pulls the data, immediately transforms it into standard FOCUS rows, and pushes it into the Data Lake.
 
-### Step 2: Trigger Alerts (Real-time)
-The **Anomaly Detection Agent** is monitoring the Data Lake. It notices Team X's cost jumped 300% compared to the 7-day moving average. It immediately creates an `Alert Event` and drops it into the Message Queue.
+### Step 2: Real-time Detection & Alerting
+The **Anomaly Detection Agent** monitoring the Data Lake notices the `BilledCost` column for Team X's `SubAccountId` has increased 300% compared to the 7-day average. It instantly creates an `Alert Event` and sends it to the queue.
 
-### Step 3: Root Cause Analysis
-The **Optimization Analyst Agent** receives the `Alert Event`. It queries deep into Team X's logs and discovers the root cause is *an infinite loop code running GPT-4 API calls*. It packages this finding.
+### Step 3: Deep Root-Cause Analysis
+The **Optimization Analyst Agent** receives the `Alert Event`. It writes a standard FOCUS SQL query to dive deep into Team X's logs and discovers the cause originates from the `ServiceCategory` = "AI API". It packages this root cause.
 
-### Step 4: Human Notification (Actionable Alert)
-The **Reporting Agent** receives the "Root Cause" from the Analyst Agent. Instead of dumping a JSON log file into Slack, it uses a Prompt to craft an urgent, friendly message:
-> *"🚨 **Alert:** Product Team X is exceeding their OpenAI cost by 300% ($500 consumed in the last 2 hours). Suspected cause: An infinite loop calling the GPT-4 API. Please review the codebase immediately!"*
+### Step 4: Actionable Human Alert
+The **Reporting Agent** receives the "Root Cause" from the Analyst. It uses an LLM to compose an urgent, user-friendly message:
+> *"🚨 **Alert:** Product Team X has exceeded costs by 300% (Spent $500 in the last 2 hours based on standard BilledCost). Suspected cause: AI API services are being called continuously. Please check your systems immediately!"*
+(Sent via internal communication channel)
 
 ### Step 5: Auto-Remediation (Optional)
-If granted permissions, the Orchestrator can automatically make an API call to temporarily Rate-limit Team X's OpenAI account until Devs fix the bug, preventing thousands of dollars wasted overnight.
+If granted Actionability permissions, the Orchestrator can automatically call an API to temporarily rate-limit Team X's account until developers fix the bug, preventing further waste.
 </Steps>
 
-## 4. Value Delivered to the Organization
-Adopting a Multi-Agent Workflow helps FRT:
-1. **Minimize Downtime:** Machines monitor 24/7 and alert instantly; humans only need to make decisions based on reports already "digested" by AI.
-2. **Eliminate Bottlenecks:** The FinOps Team (currently only 1.5 FTEs) is not overwhelmed by manual log checking.
-3. **Flexible Scalability:** When introducing a new cloud provider (e.g., Google Cloud), simply add a new `Data Ingestion Agent` without breaking the core alerting logic.
+## 4. Organizational Value of this Integration
+Building a Multi-Agent system on a FOCUS foundation helps FRT:
+1. **Universal AI Models (Write once, run anywhere):** Agents (for anomaly detection and analysis) only need to be trained/prompted once on the FOCUS format, and they automatically work correctly across all providers (AWS, Azure, SaaS) without rewriting code.
+2. **Eliminate Bottlenecks:** The FinOps team is not overwhelmed by translating the billing terminology of each individual vendor.
+3. **Flexible Scalability:** When a new Cloud Vendor is added, only the data mapping rules for the `Data Ingestion Agent` need updating; the rest of the Multi-Agent system continues to function normally.

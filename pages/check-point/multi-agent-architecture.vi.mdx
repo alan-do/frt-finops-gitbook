@@ -1,16 +1,16 @@
 import { Callout, Cards, Card, Steps } from 'nextra/components'
 
-# Đề xuất Kiến trúc Multi-Agent Automation
+# Kiến trúc Multi-Agent kết hợp chuẩn FOCUS
 
 <Callout type="info" emoji="🤖">
-  **Tầm nhìn Tự động hóa (Autonomous FinOps):** Thay vì sử dụng các script cronjob cứng nhắc, hệ thống FRT FinOps sẽ được thiết kế dựa trên kiến trúc **Multi-Agent** (Đa tác tử). Sự kết hợp của nhiều AI Agents chuyên biệt giúp tự động hóa toàn bộ Workflow từ thu thập dữ liệu, phát hiện bất thường, phân tích nguyên nhân đến đưa ra khuyến nghị tối ưu.
+  **Tầm nhìn Tự động hóa (Autonomous FinOps):** Hệ thống FRT FinOps không sử dụng các script xử lý dữ liệu cứng nhắc, mà được xây dựng trên kiến trúc **Multi-Agent** (Đa tác tử) hoạt động trơn tru trên nền tảng dữ liệu đã được chuẩn hóa bởi **Tiêu chuẩn Mở FOCUS**. Sự kết hợp này tạo ra một "Đội ngũ Ảo" có khả năng giao tiếp chung một ngôn ngữ dữ liệu, tự động hóa toàn bộ Workflow từ thu thập, phát hiện bất thường đến phân tích nguyên nhân.
 </Callout>
 
-Kiến trúc Multi-Agent cho phép hệ thống hoạt động như một "Đội ngũ Ảo" (Virtual FinOps Team), nơi mỗi Agent đảm nhận một vai trò cụ thể, giao tiếp với nhau và tự chủ đưa ra quyết định dựa trên dữ liệu thời gian thực.
+Kiến trúc Multi-Agent cho phép hệ thống hoạt động tự chủ, trong đó mỗi Agent đảm nhận một vai trò cụ thể và đưa ra quyết định dựa trên dữ liệu thời gian thực được trích xuất từ FOCUS Data Lake.
 
-## 1. Sơ đồ Kiến trúc (Multi-Agent Workflow)
+## 1. Sơ đồ Kiến trúc (Multi-Agent & FOCUS Workflow)
 
-Dưới đây là mô hình giao tiếp giữa các Agents trong hệ thống FinOps:
+Dưới đây là mô hình giao tiếp giữa các Agents trong hệ thống FinOps, với trung tâm là FOCUS Data Lake:
 
 ```mermaid
 graph TD
@@ -25,71 +25,72 @@ graph TD
     A3[💡 Optimization Analyst Agent]:::agent
     A4[🗣️ Reporting & Comm Agent]:::agent
 
-    DB[(Central Data Lake)]:::db
-    Slack[Slack / Email]:::output
+    DB[(FOCUS Central Data Lake)]:::db
+    Channel[Kênh nội bộ / Email]:::output
 
     Orchestrator --> A1
     Orchestrator --> A2
     Orchestrator --> A3
     Orchestrator --> A4
 
-    A1 -->|Kéo Billing & API Usage| DB
-    DB -->|Stream Data| A2
-    DB -->|Historical Data| A3
+    A1 -->|Kéo Billing & Transform sang chuẩn FOCUS| DB
+    DB -->|Stream chuẩn hóa BilledCost| A2
+    DB -->|Query Historical FOCUS Data| A3
 
     A2 -->|Phát hiện Cost Spike!| A4
-    A3 -->|Đề xuất mua Reserved Instance| A4
+    A3 -->|Đề xuất tối ưu (ResourceName)| A4
 
-    A4 -->|Báo cáo ngôn ngữ tự nhiên| Slack
+    A4 -->|Báo cáo ngôn ngữ tự nhiên| Channel
 ```
 
-## 2. Vai trò của từng Automation Agent
+## 2. Vai trò của từng Automation Agent trong hệ sinh thái FOCUS
 
-Hệ thống bao gồm 4 Tác tử (Agents) chính, hoạt động song song và tương tác qua lại:
+Hệ thống bao gồm 4 Tác tử (Agents) chính, lấy chuẩn FOCUS làm kim chỉ nam để tương tác:
 
 <Cards>
   <Card icon="🕵️" title="Data Ingestion Agent" href="#">
-    **Nhiệm vụ:** Tự động hóa việc thu thập dữ liệu.  
-    Agent này liên tục gọi API đến AWS, Azure, OpenAI để kéo log sử dụng. Nó có khả năng tự xử lý lỗi (retry) khi API rate limit hoặc data trả về bị hỏng.
+    **Nhiệm vụ:** Bộ chuyển đổi đa nền tảng (Universal Translator).  
+    Liên tục gọi API đến AWS, Azure, OpenAI để kéo log sử dụng. Nó tự động **ép (transform)** các cột dữ liệu đặc thù của từng hãng về đúng định dạng của thư viện cột FOCUS (ví dụ: gộp chung về cột `BilledCost` và `ProviderName`).
   </Card>
   <Card icon="🚨" title="Anomaly Detection Agent" href="#">
     **Nhiệm vụ:** "Người gác cổng" ngân sách.  
-    Chạy các model thống kê học máy (Machine Learning) để phân tích real-time. Nếu chi phí của một service tăng vọt sai lệch so với baseline, Agent này lập tức kích hoạt chuông báo động.
+    Do dữ liệu đã được chuẩn hóa, Agent này chỉ cần chạy một model Machine Learning duy nhất trên cột `BilledCost` để giám sát Real-time toàn bộ tổ chức. Nó kích hoạt chuông báo động nếu phát hiện sai lệch so với baseline.
   </Card>
   <Card icon="💡" title="Optimization Analyst Agent" href="#">
     **Nhiệm vụ:** Cố vấn tối ưu chi phí.  
-    Quét dữ liệu lịch sử để tìm kiếm "tài nguyên rác" (idle resources) hoặc đưa ra chiến lược tiết kiệm (vd: "Nếu mua AWS Savings Plan ngay bây giờ, team A sẽ tiết kiệm được 30% tháng tới").
+    Quét dữ liệu lịch sử chuẩn FOCUS để tìm kiếm tài nguyên nhàn rỗi dựa trên các tags tiêu chuẩn (`ChargeCategory`, `ResourceName`) và đưa ra chiến lược tiết kiệm (vd: "Mua Savings Plan cho bucket tài nguyên này").
   </Card>
   <Card icon="🗣️" title="Reporting & Comm Agent" href="#">
     **Nhiệm vụ:** Phát ngôn viên (GenAI).  
-    Sử dụng LLM (GPT-4o/Claude) để dịch các số liệu khô khan thành ngôn ngữ con người. Nhận tín hiệu từ các Agent khác và viết báo cáo/cảnh báo thân thiện gửi lên Slack.
+    Được cấu hình Prompt để đọc hiểu bảng dữ liệu FOCUS. Nhận tín hiệu từ các Agent khác, giải thích lý do tăng chi phí và viết báo cáo thân thiện gửi lên Kênh chat nội bộ.
   </Card>
 </Cards>
 
-## 3. Workflow Thực tế: Xử lý Bất thường (Incident Handling)
+## 3. Workflow Thực tế: Xử lý Bất thường trên Dữ liệu FOCUS
 
-Để hình dung rõ hơn, dưới đây là một "Tiến trình" (Workflow) khi có sự cố tăng chi phí đột biến xảy ra, minh họa cách các Agent phối hợp tự động:
+Để hình dung rõ hơn sự lợi hại khi kết hợp Multi-Agent và FOCUS, dưới đây là "Tiến trình" (Workflow) khi có sự cố tăng chi phí:
 
 <Steps>
-### Bước 1: Thu thập Dữ liệu (Continuous)
-**Data Ingestion Agent** phát hiện API Usage của Team Product X đối với dịch vụ OpenAI tăng vọt vào rạng sáng. Nó đẩy dữ liệu thô vào Data Lake.
+### Bước 1: Thu thập và Chuẩn hóa (Continuous Ingestion)
+**Data Ingestion Agent** phát hiện API Usage của Team Product X đối với dịch vụ OpenAI tăng vọt. Nó kéo dữ liệu, chuyển đổi ngay lập tức thành các row chuẩn FOCUS và đẩy vào Data Lake.
 
-### Bước 2: Kích hoạt Cảnh báo (Real-time)
-**Anomaly Detection Agent** đang trực (monitor) Data Lake. Nó nhận thấy chi phí của Team X tăng 300% so với trung bình 7 ngày qua. Nó lập tức tạo một `Alert Event` và gửi vào hàng đợi (Message Queue).
+### Bước 2: Kích hoạt Cảnh báo (Real-time Detection)
+**Anomaly Detection Agent** đang trực (monitor) Data Lake. Nó nhận thấy cột `BilledCost` của `SubAccountId` thuộc Team X tăng 300% so với trung bình 7 ngày qua. Nó lập tức tạo một `Alert Event` và gửi vào hàng đợi.
 
-### Bước 3: Phân tích Nguyên nhân (Analysis)
-**Optimization Analyst Agent** nhận được `Alert Event`. Nó truy vấn sâu vào log của Team X và phát hiện nguyên nhân là do *một đoạn code chạy loop vô hạn gọi API GPT-4*. Nó đóng gói nguyên nhân này lại.
+### Bước 3: Phân tích Nguyên nhân (Deep Analysis)
+**Optimization Analyst Agent** nhận được `Alert Event`. Nó viết một câu query SQL chuẩn FOCUS để truy vấn sâu vào log của Team X và phát hiện nguyên nhân đến từ `ServiceCategory` = "AI API". Nó đóng gói nguyên nhân này lại.
 
 ### Bước 4: Thông báo cho Con người (Actionable Alert)
-**Reporting Agent** nhận "Nguyên nhân" từ Analyst Agent. Thay vì ném một file log JSON ra Slack, nó dùng Prompt để soạn một tin nhắn khẩn cấp thân thiện:
-> *"🚨 **Cảnh báo:** Team Product X đang bị vượt chi phí OpenAI 300% (Tiêu tốn $500 trong 2 giờ qua). Nguyên nhân nghi ngờ: Có một vòng lặp vô hạn đang gọi API GPT-4. Các bạn check lại code ngay nhé!"*
+**Reporting Agent** nhận "Nguyên nhân" từ Analyst. Nó dùng LLM để soạn một tin nhắn khẩn cấp thân thiện:
+> *"🚨 **Cảnh báo:** Team Product X đang bị vượt chi phí 300% (Tiêu tốn $500 trong 2 giờ qua theo chuẩn BilledCost). Nguyên nhân nghi ngờ: Dịch vụ AI API đang bị gọi liên tục. Các bạn check lại ngay nhé!"*
+(Gửi qua kênh chat nội bộ)
 
 ### Bước 5: Phản hồi tự động (Optional)
-Nếu được cấp quyền (Auto-remediation), Orchestrator có thể tự động gọi API để giới hạn (Rate-limit) account OpenAI của Team X tạm thời cho đến khi Dev vào fix bug, ngăn chặn lãng phí hàng nghìn Đô la trong đêm.
+Nếu được cấp quyền (Actionability), Orchestrator có thể tự động gọi API để giới hạn (Rate-limit) account của Team X tạm thời cho đến khi Dev vào fix bug, ngăn chặn lãng phí.
 </Steps>
 
-## 4. Giá trị mang lại cho Tổ chức
-Sử dụng Multi-Agent Workflow giúp FRT:
-1. **Giảm thiểu thời gian chết:** Máy móc giám sát 24/7 và cảnh báo ngay lập tức, con người chỉ cần ra quyết định dựa trên báo cáo đã được AI "nhai sẵn".
-2. **Loại bỏ Bottleneck:** Team FinOps (hiện tại chỉ có 1.5 FTE) không bị quá tải bởi việc check log thủ công.
-3. **Mở rộng linh hoạt (Scalable):** Khi có thêm cloud mới (ví dụ Google Cloud), chỉ cần thêm một `Data Ingestion Agent` mới mà không phá vỡ logic cảnh báo cốt lõi.
+## 4. Giá trị mang lại từ sự kết hợp này
+Việc xây dựng Multi-Agent trên nền tảng FOCUS giúp FRT:
+1. **Model AI dùng chung (Write once, run anywhere):** Các Agent (phát hiện bất thường, phân tích) chỉ cần train/viết prompt một lần trên định dạng FOCUS, và tự động hoạt động đúng với mọi nhà cung cấp (AWS, Azure, SaaS) mà không cần code lại.
+2. **Loại bỏ Bottleneck:** Team FinOps không bị quá tải bởi việc dịch thuật ngữ Billing của từng hãng.
+3. **Mở rộng linh hoạt (Scalable):** Khi có thêm Cloud Vendor mới, chỉ cần cập nhật quy tắc map dữ liệu cho `Data Ingestion Agent`, phần còn lại của hệ thống Multi-Agent vẫn hoạt động bình thường.
