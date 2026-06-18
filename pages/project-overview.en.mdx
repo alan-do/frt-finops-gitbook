@@ -6,6 +6,29 @@ import { Callout, Steps, Cards, Card } from 'nextra/components'
   **Strategic Vision:** Build a fully automated **FRT FinOps** platform that helps the Technology Division manage, optimize, and bring 100% transparency to Cloud and AI (GenAI) costs across the entire FPT Retail system.
 </Callout>
 
+## Deployment Progress Roadmap (Q3/2026)
+
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '3rem 0', position: 'relative', overflowX: 'auto', paddingBottom: '1rem' }}>
+  <div style={{ position: 'absolute', top: '15px', left: '5%', right: '5%', height: '4px', background: '#e5e7eb', zIndex: 0 }}></div>
+  <div style={{ position: 'absolute', top: '15px', left: '5%', width: '35%', height: '4px', background: '#3b82f6', zIndex: 0 }}></div>
+  
+  {[
+    { step: 'Phase 1', title: 'Data Foundation', desc: 'Sync Billing & API usage', status: 'done', date: 'June 2026' },
+    { step: 'Phase 2', title: 'Alerting System', desc: 'Cost Allocation & Webhooks', status: 'active', date: 'July 2026' },
+    { step: 'Phase 3', title: 'Live Dashboard', desc: 'Data Visualization & Filters', status: 'pending', date: 'Aug 2026' },
+    { step: 'Phase 4', title: 'GenAI Analysis', desc: 'Automated AI reporting', status: 'pending', date: 'Sep 2026' },
+  ].map((item, i) => (
+    <div key={i} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '25%', textAlign: 'center' }}>
+      <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: item.status === 'done' ? '#3b82f6' : item.status === 'active' ? '#60a5fa' : '#e5e7eb', border: item.status === 'active' ? '4px solid #bfdbfe' : 'none', color: item.status === 'pending' ? '#9ca3af' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', boxShadow: '0 0 0 4px var(--nextra-bg)' }}>
+        {i + 1}
+      </div>
+      <div style={{ marginTop: '12px', fontWeight: 'bold', fontSize: '15px', color: item.status === 'pending' ? '#9ca3af' : 'var(--nextra-text)' }}>{item.title}</div>
+      <div style={{ fontSize: '13px', color: 'var(--nextra-text-light)', marginTop: '4px', padding: '0 10px' }}>{item.desc}</div>
+      <div style={{ fontSize: '12px', fontWeight: '600', color: item.status === 'done' ? '#3b82f6' : '#9ca3af', marginTop: '8px', background: 'var(--nextra-bg)', padding: '2px 8px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>{item.date}</div>
+    </div>
+  ))}
+</div>
+
 This section provides a big-picture view of the project's development roadmap, key milestones, and the core value it brings to the organization.
 
 ## 1. Three Pillars of the Project
@@ -24,9 +47,7 @@ The system is designed around 3 core objectives:
   </Card>
 </Cards>
 
-## 2. Visual Development Roadmap (UI Roadmap)
-
-Below is the deployment roadmap for Q3/2026. The journey is divided into 4 main phases, progressing from building the data foundation to leveraging AI for cost analysis.
+## 2. Milestone Details
 
 <Steps>
 
@@ -35,27 +56,21 @@ Below is the deployment roadmap for Q3/2026. The journey is divided into 4 main 
 - Pull Billing data from AWS Cost Explorer.
 - Fetch API Usage from OpenAI / Azure / Anthropic.
 - Normalize and store in a Centralized Data Lake.
-- **Deliverable:** A complete database with cost data cleansed every 24 hours.
 
 ### Phase 2: Alerting & Cost Allocation (July 2026)
 **Goal:** Tag costs and provide instant alerts.
 - Build a Tagging system to allocate costs to each Product Team.
-- Set up Webhooks to send alerts to **Slack** immediately when costs spike (Anomaly Detection) or hit budget thresholds.
-- **Deliverable:** MVP Release - Teams start receiving weekly bills via Slack.
+- Set up Webhooks to send alerts to **Slack** immediately when costs spike (Anomaly Detection).
 
 ### Phase 3: Real-time Dashboard (August 2026)
 **Goal:** Visualize data for the Management Team.
 - Build Grafana/Metabase Dashboards for the CTO and Product Owners.
 - Add features to filter by time, team, and environment (Dev/Staging/Prod).
-- Start collecting Revenue/User data to calculate ROI.
-- **Deliverable:** Fully functional Dashboard for monthly cost review meetings.
 
 ### Phase 4: GenAI Automated Reporting (September 2026)
 **Goal:** Let AI automatically explain cost fluctuations.
 - Integrate ChatGPT/Claude to read cost data and draft automated analysis reports.
 - Answer questions like: *"Why did Team A consume so many OpenAI tokens this week?"*
-- Finalize the Value & ROI evaluation template for all AI applications.
-- **Deliverable:** Production Release (Q3/2026).
 
 </Steps>
 

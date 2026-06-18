@@ -6,6 +6,29 @@ import { Callout, Steps, Cards, Card } from 'nextra/components'
   **Tầm nhìn chiến lược (Vision):** Xây dựng một nền tảng **FRT FinOps** hoàn toàn tự động, giúp Ban Công nghệ quản lý, tối ưu hóa và minh bạch hóa 100% chi phí liên quan đến Cloud và Trí tuệ nhân tạo (GenAI) trên toàn hệ thống FPT Retail.
 </Callout>
 
+## Lộ Trình Tiến Trình Triển Khai (Q3/2026)
+
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '3rem 0', position: 'relative', overflowX: 'auto', paddingBottom: '1rem' }}>
+  <div style={{ position: 'absolute', top: '15px', left: '5%', right: '5%', height: '4px', background: '#e5e7eb', zIndex: 0 }}></div>
+  <div style={{ position: 'absolute', top: '15px', left: '5%', width: '35%', height: '4px', background: '#3b82f6', zIndex: 0 }}></div>
+  
+  {[
+    { step: 'Giai đoạn 1', title: 'Data Foundation', desc: 'Gom dữ liệu Billing & API', status: 'done', date: 'Tháng 6/2026' },
+    { step: 'Giai đoạn 2', title: 'Alerting System', desc: 'Cost Allocation & Slack Webhook', status: 'active', date: 'Tháng 7/2026' },
+    { step: 'Giai đoạn 3', title: 'Live Dashboard', desc: 'Trực quan hóa & Lọc dữ liệu', status: 'pending', date: 'Tháng 8/2026' },
+    { step: 'Giai đoạn 4', title: 'GenAI Analysis', desc: 'Báo cáo tự động bằng AI', status: 'pending', date: 'Tháng 9/2026' },
+  ].map((item, i) => (
+    <div key={i} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '25%', textAlign: 'center' }}>
+      <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: item.status === 'done' ? '#3b82f6' : item.status === 'active' ? '#60a5fa' : '#e5e7eb', border: item.status === 'active' ? '4px solid #bfdbfe' : 'none', color: item.status === 'pending' ? '#9ca3af' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', boxShadow: '0 0 0 4px var(--nextra-bg)' }}>
+        {i + 1}
+      </div>
+      <div style={{ marginTop: '12px', fontWeight: 'bold', fontSize: '15px', color: item.status === 'pending' ? '#9ca3af' : 'var(--nextra-text)' }}>{item.title}</div>
+      <div style={{ fontSize: '13px', color: 'var(--nextra-text-light)', marginTop: '4px', padding: '0 10px' }}>{item.desc}</div>
+      <div style={{ fontSize: '12px', fontWeight: '600', color: item.status === 'done' ? '#3b82f6' : '#9ca3af', marginTop: '8px', background: 'var(--nextra-bg)', padding: '2px 8px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>{item.date}</div>
+    </div>
+  ))}
+</div>
+
 Phần này cung cấp bức tranh toàn cảnh về lộ trình phát triển của dự án, các cột mốc quan trọng và giá trị cốt lõi mang lại cho tổ chức.
 
 ## 1. Ba Trụ Cột Của Dự Án
@@ -24,9 +47,7 @@ Hệ thống được thiết kế dựa trên 3 mục tiêu cốt lõi:
   </Card>
 </Cards>
 
-## 2. Lộ trình phát triển trực quan (UI Roadmap)
-
-Dưới đây là lộ trình (Roadmap) triển khai dự án trong Quý 3/2026. Lộ trình được chia thành 4 giai đoạn chính, đi từ việc xây dựng nền tảng dữ liệu đến việc ứng dụng AI để phân tích chi phí.
+## 2. Chi tiết Lộ trình (Milestones)
 
 <Steps>
 
@@ -35,27 +56,21 @@ Dưới đây là lộ trình (Roadmap) triển khai dự án trong Quý 3/2026.
 - Kéo dữ liệu Billing từ AWS Cost Explorer.
 - Lấy API Usage từ OpenAI / Azure / Anthropic.
 - Chuẩn hóa dữ liệu và lưu trữ tập trung (Centralized Data Lake).
-- **Deliverable:** Database hoàn chỉnh với dữ liệu chi phí được làm sạch mỗi 24h.
 
 ### Bước 2: Alerting & Cost Allocation (Tháng 7/2026)
 **Mục tiêu:** Gắn nhãn chi phí và cảnh báo tức thời.
 - Xây dựng hệ thống Tagging để chia tiền (Cost Allocation) cho từng Product Team.
-- Thiết lập Webhook cảnh báo lên **Slack** ngay khi chi phí tăng đột biến (Anomaly Detection) hoặc chạm ngưỡng ngân sách (Budget Threshold).
-- **Deliverable:** MVP Release - Các team bắt đầu nhận được bill hàng tuần qua Slack.
+- Thiết lập Webhook cảnh báo lên **Slack** ngay khi chi phí tăng đột biến (Anomaly Detection).
 
 ### Bước 3: Real-time Dashboard (Tháng 8/2026)
 **Mục tiêu:** Trực quan hóa dữ liệu cho Management Team.
 - Dựng Grafana/Metabase Dashboard cho CTO và Product Owners.
 - Thêm tính năng Filter theo thời gian, theo team, theo môi trường (Dev/Staging/Prod).
-- Bắt đầu thu thập dữ liệu về Revenue/User để tính toán ROI.
-- **Deliverable:** Dashboard hoàn thiện, phục vụ các buổi họp review chi phí hàng tháng.
 
 ### Bước 4: GenAI Automated Reporting (Tháng 9/2026)
 **Mục tiêu:** Để AI tự giải thích nguyên nhân tăng/giảm chi phí.
 - Tích hợp ChatGPT/Claude để đọc dữ liệu chi phí và viết báo cáo phân tích tự động.
 - Trả lời các câu hỏi: *"Tại sao team A tiêu tốn nhiều token OpenAI tuần này?"*
-- Chốt template đánh giá Value & ROI của toàn bộ các ứng dụng AI.
-- **Deliverable:** Production Release (Q3/2026).
 
 </Steps>
 
