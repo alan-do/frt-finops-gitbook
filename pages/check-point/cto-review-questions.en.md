@@ -14,7 +14,7 @@ To ensure the FinOps project is on the right track and meets expectations for Q3
 ## 2. Specific MVPs and Immediate Features
 * **Q:** With the current 1.5 FTE resources, which MVP features are the highest priority?
   * Proposed MVP 1: **Centralized Dashboard** (Tracking costs for the 1-2 largest services, such as AWS and OpenAI).
-  * Proposed MVP 2: **Basic Alert System** (Sending alerts via Slack when costs spike significantly compared to the baseline).
+  * Proposed MVP 2: **Basic Alert System** (Sending alerts via internal chat/Email when costs spike significantly compared to the baseline).
 * **Q:** Is it permissible to use available commercial LLMs (GPT-4/Claude) via API to quickly develop automated reporting features, rather than spending time training an internal model?
 
 ## 3. Project Progress (Timeline & Milestones)

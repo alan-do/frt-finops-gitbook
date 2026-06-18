@@ -2,56 +2,56 @@ import { Tabs, Tab, Steps, Callout, Cards, Card } from 'nextra/components'
 
 # Roadmap, Estimation & Backlog
 
-This plan is based on the actual team resources of **1.5 FTEs** (1 Full-time, 1 Part-time 50%). The primary strategy is a **lean MVP, prioritizing API/SaaS solutions** rather than building from scratch.
+This plan is based on the team's actual resource capacity of **1.5 FTE** (1 Full-time, 1 Part-time 50%). The core strategy is **strict adherence to the FOCUS (FinOps Open Cost & Usage Specification) standard** to normalize data from the very beginning, rather than spending effort building an internal proprietary data model.
 
-<Tabs items={['🗺️ Detailed Roadmap', '📊 Estimation & 5 Core Stories']}>
+<Tabs items={['🗺️ Roadmap Details', '📊 Estimation & 5 Core Stories']}>
   <Tab>
-    Below is the detailed vertical timeline for the project's execution in Q3/2026.
+    Below are the detailed action items chronologically for Q3/2026, aligned closely with the FOCUS integration process.
     
     <Steps>
-      ### M1: Backlog Ready (To be completed by June 20, 2026)
-      **Goal:** Prepare all tasks for Sprint 1.
-      - FinOps Lead defines the core User Stories on Jira.
-      - Finalize Read-only access to AWS Accounts and the OpenAI Organization.
-      - Set up the basic Database Schema structure.
+      ### M1: FOCUS Data Foundation (To be completed by 20/06/2026)
+      **Objective:** Initialize data architecture based on the FOCUS standard.
+      - FinOps Lead researches and maps required data fields according to FOCUS 1.4 (e.g., `BilledCost`, `ChargeCategory`, `ProviderName`).
+      - Finalize Billing Access to AWS, Azure, and other SaaS/AI providers.
+      - Establish a Database Schema that 100% complies with the FOCUS Data Model.
 
-      ### M2: MVP Release - Data & Alerts (July 04, 2026)
-      **Goal:** Automated data flow running smoothly with preliminary alerts.
-      - **Task 1:** Write scripts to pull Billing Data (AWS/OpenAI) to the database nightly (Cronjob).
-      - **Task 2:** Clean data and map tags to the correct Product Team names.
-      - **Task 3:** Set up Webhooks to send automated notifications to the `#frt-finops-alerts` Slack channel when a team's cost exceeds 110% of their 7-day average.
+      ### M2: Data Ingestion & Alerts (04/07/2026)
+      **Objective:** Synchronize and normalize multi-source data, combined with basic alerting.
+      - **Task 1:** Deploy Data Ingestion Agents to automatically pull data from Cloud/SaaS providers and transform them into the FOCUS format.
+      - **Task 2:** Cleanse data and normalize the `SubAccountId` column to accurately map to individual Product Teams.
+      - **Task 3:** Set up a Webhook to send automated notifications to internal chat channels/Email when a team's `BilledCost` exceeds 110% of the baseline.
 
-      ### M3: Internal Demo & Dashboard (July 18, 2026)
-      **Goal:** Visualize data for presentation to Management.
-      - **Task 1:** Deploy internal Grafana / Metabase.
-      - **Task 2:** Create charts (Bar chart, Line chart) tracking costs by Day/Week and by Team.
-      - **Task 3:** Conduct an internal demo with the CTO & POs to gather feedback on Dashboard UX/UI.
+      ### M3: Unified Dashboard MVP (18/07/2026)
+      **Objective:** Visualize cross-platform data leveraging FOCUS consistency.
+      - **Task 1:** Deploy Grafana / Metabase connected directly to the FOCUS Data Lake.
+      - **Task 2:** Build a normalized Dashboard displaying Multi-Cloud total costs on a single chart without terminology discrepancies.
+      - **Task 3:** Conduct an internal Demo with the CTO & POs to demonstrate the transparent reporting capabilities enabled by FOCUS.
 
-      ### M4: GenAI Integration (August 15, 2026)
-      **Goal:** Apply AI to automatically analyze causes of cost increases.
-      - **Task 1:** Write prompt engineering to feed weekly cost metrics into GPT-4o.
-      - **Task 2:** Ask AI to summarize 3 reasons for cost spikes (e.g., "Team A ran excessively large BigQuery operations on Thursday").
-      - **Task 3:** Automatically send this summary report every Monday morning.
+      ### M4: GenAI Integration (15/08/2026)
+      **Objective:** Apply AI to analyze FOCUS data.
+      - **Task 1:** Configure Prompts so GenAI can automatically write SQL queries against the standard FOCUS table structures.
+      - **Task 2:** Request GenAI to summarize the reasons for cost spikes based on FOCUS columns like `ResourceName` and `ServiceCategory`.
+      - **Task 3:** Automatically send this summary report every Monday morning via internal channels.
 
-      ### M5: Production Release (September 30, 2026)
-      **Goal:** Final packaging and company-wide rollout.
-      - Begin collecting User/Revenue data from teams to establish the ROI calculation formula.
+      ### M5: Production & ROI Tracking (30/09/2026)
+      **Objective:** Final packaging and company-wide rollout.
+      - Combine FOCUS data with Business Value data (User/Revenue) from teams to calculate ROI.
       - Hand over documentation (User Manual).
-      - Open Dashboard access to all Product Owners across FRT.
+      - Grant Dashboard access to all Product Owners across FRT.
     </Steps>
   </Tab>
 
   <Tab>
-    ### 1. Time & Budget Estimation
+    ### 1. Time Budget Plan (Estimation)
     
-    The project has a budget of **105 man-days** (approx. 14 working weeks). The estimated on-time delivery rate is 70%.
+    The project has **105 man-days** (approximately 14 working weeks). The estimated On-time Delivery probability is 70%.
 
-    | Epic / Item | Estimate | Assignment | Risk Level |
+    | Epic / Category | Estimation | Assignment | Risk Level |
     | :--- | :---: | :--- | :--- |
-    | **E1: Data Pipeline Foundation** | 25 days | 1.0 FTE | High (Depends on DevOps for access) |
-    | **E2: AI Budget Alert** | 15 days | 0.5 FTE | Low |
-    | **E3: GenAI Automated Reporting** | 20 days | 0.5 FTE | Medium (Time-consuming prompt tuning) |
-    | **E4: Real-time Dashboard** | 20 days | 1.0 FTE | Medium |
+    | **E1: FOCUS Schema & Ingestion** | 25 days | 1.0 FTE | Medium (Requires mapping provider data to standards) |
+    | **E2: Alert System** | 15 days | 0.5 FTE | Low |
+    | **E3: GenAI Automated Reporting** | 20 days | 0.5 FTE | Medium (Time-consuming Prompt tuning) |
+    | **E4: Unified Real-time Dashboard** | 20 days | 1.0 FTE | Medium |
     | **E5: ROI Tracking**| 15 days | Shared | Very High (Difficult to measure Value) |
     | **Buffer (Meetings, Bug Fixes)** | 10 days | Shared | |
     | **TOTAL** | **105 days**| | *(Tight)* |
@@ -63,29 +63,29 @@ This plan is based on the actual team resources of **1.5 FTEs** (1 Full-time, 1 
     Below are the 5 core Stories defined by the Product/Tech Lead on Jira, ready for Sprint Planning:
 
     <Cards>
-      <Card title="🎫 Story 1: Data Automation (Epic 1)" href="#">
+      <Card title="🎫 Story 1: Applying the FOCUS Standard (Epic 1)" href="#">
         **As a** FinOps Data Engineer,  
-        **I want to** automatically sync costs from AWS Cost Explorer and OpenAI API into the Database daily,  
-        **So that** I have a Centralized Data Lake (Single Source of Truth) for analysis without having to manually export Excel files.
+        **I want to** synchronize and transform all costs from AWS and OpenAI into the standard FOCUS Format,  
+        **So that** the system has a cross-platform Single Source of Truth without billing terminology conflicts.
       </Card>
       <Card title="🎫 Story 2: Cost Tagging (Epic 1)" href="#">
         **As a** FinOps Admin,  
-        **I want to** map AWS `tags` and OpenAI `Project IDs` to the current list of Product Teams,  
-        **So that** the system can accurately allocate costs (Cost Allocation) to each department.
+        **I want to** utilize standard FOCUS data fields (such as `Tags` and `SubAccountId`) to map with the list of Product Teams,  
+        **So that** the system can automatically and accurately perform Cost Allocation (Chargeback) for each department.
       </Card>
-      <Card title="🎫 Story 3: Budget Breach Alerts (Epic 2)" href="#">
+      <Card title="🎫 Story 3: Budget Overrun Alerts (Epic 2)" href="#">
         **As a** Product Owner,  
-        **I want to** receive an immediate alert via Slack if my team's Cloud/AI costs exceed the configured budget,  
-        **So that** I can promptly investigate the cause and stop the waste.
+        **I want to** receive immediate alerts via internal chat channels/Email if my team's `BilledCost` column exceeds the allowed threshold,  
+        **So that** I can promptly investigate the cause and halt any waste.
       </Card>
       <Card title="🎫 Story 4: Visual Monitoring (Epic 4)" href="#">
         **As a** CTO,  
-        **I want to** have a visual Dashboard (Grafana) showing total costs and the top 3 teams spending the most money,  
-        **So that** I can make quick budget allocation decisions.
+        **I want to** have a comprehensive Dashboard displaying Multi-Cloud costs (running on FOCUS-normalized data),  
+        **So that** I can compare costs transparently and make quick budget coordination decisions.
       </Card>
-      <Card title="🎫 Story 5: AI Reporting (Epic 3)" href="#">
+      <Card title="🎫 Story 5: AI-Driven Reporting (Epic 3)" href="#">
         **As a** Management Team member,  
-        **I want to** receive a weekly report explaining the reasons for cost increases/decreases automatically analyzed and written by GenAI,  
+        **I want to** receive automated reports from GenAI (based on AI querying directly into the FOCUS data tables),  
         **So that** I understand the technical reasons behind the numbers without needing a meeting with the Dev team.
       </Card>
     </Cards>

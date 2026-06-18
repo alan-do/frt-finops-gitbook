@@ -14,7 +14,7 @@ description: "Các vấn đề cần chốt Scope và Yêu cầu chỉ đạo"
 ## 2. Các MVP cụ thể và tính năng trước mắt
 * **Q:** Với nguồn lực 1.5 FTE, các tính năng MVP nào là ưu tiên cao nhất cần hoàn thành trước?
   * Đề xuất MVP 1: **Dashboard Tổng quan** (Tracking chi phí tập trung cho 1-2 dịch vụ lớn nhất như AWS, OpenAI).
-  * Đề xuất MVP 2: **Hệ thống Alert cơ bản** (Gửi cảnh báo qua Slack khi chi phí tăng đột biến so với baseline).
+  * Đề xuất MVP 2: **Hệ thống Alert cơ bản** (Gửi cảnh báo qua kênh chat nội bộ/Email khi chi phí tăng đột biến so với baseline).
 * **Q:** Có thể sử dụng các LLM thương mại có sẵn (GPT-4/Claude) qua API để phát triển nhanh tính năng tự động báo cáo, thay vì tốn thời gian tự huấn luyện (train) model nội bộ hay không?
 
 ## 3. Tiến độ dự án (Timeline & Progress)
