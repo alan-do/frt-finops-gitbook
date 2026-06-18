@@ -1,0 +1,66 @@
+import { Callout, Steps, Cards, Card } from 'nextra/components'
+
+# Project Overview & Vision
+
+<Callout type="info" emoji="🎯">
+  **Strategic Vision:** Build a fully automated **FRT FinOps** platform that helps the Technology Division manage, optimize, and bring 100% transparency to Cloud and AI (GenAI) costs across the entire FPT Retail system.
+</Callout>
+
+This section provides a big-picture view of the project's development roadmap, key milestones, and the core value it brings to the organization.
+
+## 1. Three Pillars of the Project
+
+The system is designed around 3 core objectives:
+
+<Cards>
+  <Card icon="👁️" title="Visibility" href="/en/scope/cost-tracking-and-allocation">
+    Display detailed Cloud & AI costs by team and project in real-time.
+  </Card>
+  <Card icon="⚡" title="Automation" href="/en/development-process/6-steps-workflow">
+    Detect anomalies and send automated analysis reports via Slack & Email using GenAI.
+  </Card>
+  <Card icon="📈" title="ROI Optimization" href="/en/scope/resource-optimization">
+    Measure the actual Business Value delivered by AI applications against their costs.
+  </Card>
+</Cards>
+
+## 2. Visual Development Roadmap (UI Roadmap)
+
+Below is the deployment roadmap for Q3/2026. The journey is divided into 4 main phases, progressing from building the data foundation to leveraging AI for cost analysis.
+
+<Steps>
+
+### Phase 1: Data Pipeline Foundation (June 2026)
+**Goal:** Consolidate data from "silos" into a single source of truth.
+- Pull Billing data from AWS Cost Explorer.
+- Fetch API Usage from OpenAI / Azure / Anthropic.
+- Normalize and store in a Centralized Data Lake.
+- **Deliverable:** A complete database with cost data cleansed every 24 hours.
+
+### Phase 2: Alerting & Cost Allocation (July 2026)
+**Goal:** Tag costs and provide instant alerts.
+- Build a Tagging system to allocate costs to each Product Team.
+- Set up Webhooks to send alerts to **Slack** immediately when costs spike (Anomaly Detection) or hit budget thresholds.
+- **Deliverable:** MVP Release - Teams start receiving weekly bills via Slack.
+
+### Phase 3: Real-time Dashboard (August 2026)
+**Goal:** Visualize data for the Management Team.
+- Build Grafana/Metabase Dashboards for the CTO and Product Owners.
+- Add features to filter by time, team, and environment (Dev/Staging/Prod).
+- Start collecting Revenue/User data to calculate ROI.
+- **Deliverable:** Fully functional Dashboard for monthly cost review meetings.
+
+### Phase 4: GenAI Automated Reporting (September 2026)
+**Goal:** Let AI automatically explain cost fluctuations.
+- Integrate ChatGPT/Claude to read cost data and draft automated analysis reports.
+- Answer questions like: *"Why did Team A consume so many OpenAI tokens this week?"*
+- Finalize the Value & ROI evaluation template for all AI applications.
+- **Deliverable:** Production Release (Q3/2026).
+
+</Steps>
+
+## 3. Risk Management & Commitment
+
+<Callout type="warning" emoji="⚠️">
+  To ensure the above Roadmap stays on track within the **105 man-days** budget, this project requires coordination from Product Owners to provide **Read-only Access** to platforms (AWS/OpenAI) before June 23, 2026.
+</Callout>
