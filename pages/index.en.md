@@ -23,3 +23,5 @@ This system is built to help the engineering, product, and management teams trac
     Learn the 6 principles of FinOps at FRT.
   </Card>
 </CardGroup>
+
+{/* Cache invalidation: 2 */}
