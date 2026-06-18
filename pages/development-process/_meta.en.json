@@ -1,4 +1,7 @@
 {
-  "index": "Process Overview",
+  "index": {
+    "title": "Process Overview",
+    "href": "/development-process"
+  },
   "6-steps-workflow": "6-Steps Workflow"
 }

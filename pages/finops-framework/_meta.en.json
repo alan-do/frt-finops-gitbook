@@ -1,5 +1,8 @@
 {
-  "index": "Framework Introduction",
+  "index": {
+    "title": "Framework Introduction",
+    "href": "/finops-framework"
+  },
   "principles-and-phases": "Principles & Phases",
   "focus-open-billing-standard": "FOCUS Open Standard"
 }

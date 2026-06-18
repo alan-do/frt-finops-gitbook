@@ -1,5 +1,8 @@
 {
-  "index": "Check Point Overview",
+  "index": {
+    "title": "Check Point Overview",
+    "href": "/check-point"
+  },
   "roadmap-and-estimation": "Roadmap & Estimation",
   "cto-review-questions": "CTO Review Questions",
   "multi-agent-architecture": "Multi-Agent Automation"

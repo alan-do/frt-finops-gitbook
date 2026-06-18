@@ -1,5 +1,8 @@
 {
-  "index": "Giới thiệu Framework",
+  "index": {
+    "title": "Giới thiệu Framework",
+    "href": "/finops-framework"
+  },
   "principles-and-phases": "Nguyên tắc & Vòng lặp",
   "focus-open-billing-standard": "Tiêu chuẩn Mở FOCUS"
 }

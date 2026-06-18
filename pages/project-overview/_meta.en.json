@@ -1,5 +1,8 @@
 {
-  "index": "Overview",
+  "index": {
+    "title": "Overview",
+    "href": "/project-overview"
+  },
   "team-and-stakeholders": "Team & Stakeholders",
   "goals-and-kpis": "Goals & KPIs"
 }

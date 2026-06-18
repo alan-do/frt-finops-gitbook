@@ -1,5 +1,8 @@
 {
-  "index": "Scope Overview",
+  "index": {
+    "title": "Scope Overview",
+    "href": "/scope"
+  },
   "cost-tracking-and-allocation": "Cost Allocation",
   "resource-optimization": "Resource Optimization",
   "budget-and-vendor-management": "Budget Management"

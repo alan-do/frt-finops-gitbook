@@ -1,5 +1,8 @@
 {
-  "index": "Tổng quan Check Point",
+  "index": {
+    "title": "Tổng quan Check Point",
+    "href": "/check-point"
+  },
   "roadmap-and-estimation": "Roadmap & Estimation",
   "cto-review-questions": "Câu hỏi cho CTO",
   "multi-agent-architecture": "Multi-Agent Automation"

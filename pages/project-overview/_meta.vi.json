@@ -1,5 +1,8 @@
 {
-  "index": "Tổng quan",
+  "index": {
+    "title": "Tổng quan",
+    "href": "/project-overview"
+  },
   "team-and-stakeholders": "Nhân sự & Các bên",
   "goals-and-kpis": "Mục tiêu & KPIs"
 }

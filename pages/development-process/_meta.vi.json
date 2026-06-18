@@ -1,4 +1,7 @@
 {
-  "index": "Tổng quan quy trình",
+  "index": {
+    "title": "Tổng quan quy trình",
+    "href": "/development-process"
+  },
   "6-steps-workflow": "Quy trình 6 bước"
 }
