@@ -1,0 +1,59 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# FOCUS: FinOps Open Cost & Usage Specification
+
+<Callout type="info" emoji="🌟">
+  **FOCUS (FinOps Open Cost & Usage Specification)** is an Open Technical Standard backed by the **FinOps Foundation**. Its core objective is to normalize and unify billing data from various technology vendors (Cloud, SaaS, PaaS, AI) into a single, consistent format.
+</Callout>
+
+Within the **FRT FinOps** architecture, adopting the FOCUS standard allows us to build a "Lingua Franca" for cost data, optimizing the Data Ingestion process and enabling our AI Agents to process metrics uniformly.
+
+---
+
+## 1. The Core Problem FOCUS Solves
+
+Currently, FinOps practitioners and automated systems face a major "bottleneck" in data processing:
+
+*   **Format Fragmentation:** Each provider (AWS, Azure, Google Cloud, OpenAI...) utilizes completely different taxonomies and billing terminologies.
+*   **Example:** The concept of "cost after discounts" is called `UnblendedCost` in AWS, `Cost` in Azure, and `Cost after credits` in GCP.
+*   **Consequence:** The process of collecting and normalizing data (Data Ingestion & Normalization) consumes too much time, delaying analysis and business decision-making.
+
+**FOCUS's Solution:** It standardizes these terms by enforcing a mandatory Column Library that all data providers (Data Generators) must comply with when exporting cost reports.
+
+---
+
+## 2. Who Participates in the FOCUS Ecosystem?
+
+The FOCUS ecosystem revolves around two main user groups:
+
+<Cards>
+  <Card icon="🏢" title="Data Generators" href="#">
+    Includes Cloud Service Providers (AWS, Azure, GCP, Oracle...), SaaS, PaaS, and Data Cloud software vendors. These entities are responsible for exporting invoices that comply with the FOCUS format.
+  </Card>
+  <Card icon="👥" title="Data Consumers" href="#">
+    These are organizations, FinOps practitioners, Tooling Vendors (CloudZero, Apptio...), and **the Automation Agents** within our system.
+  </Card>
+</Cards>
+
+---
+
+## 3. Benefits of FOCUS for FRT FinOps
+
+Integrating FOCUS as the core standard for our **Data Lake** brings strategic values:
+
+1. **Deduplication and Data Pipeline Simplification:** Instead of writing dozens of different ETL scripts to translate each Cloud vendor's language, the Data Ingestion Agent only needs to map data to a single, standard FOCUS Schema table.
+2. **Holistic Data-Driven Decisions:** Enables the Finance and Engineering teams to see the cross-platform (Multi-Cloud) cost landscape on a single Dashboard.
+3. **Accurate Cost Allocation (Chargeback):** FOCUS helps clarify the concepts of `ServiceProvider` and `HostProvider`, and provides Invoice IDs to accurately map costs to individual Product Teams.
+4. **Maximum Support for Multi-Agent:** AI Agents (like the Anomaly Detection Agent) only need to be trained on one data format (FOCUS format) to apply anomaly detection across all Vendors.
+
+---
+
+## 4. Key FOCUS Releases
+
+The FOCUS project is continuously updated with new features that strongly support FinOps Practitioners:
+
+*   **FOCUS 1.2:** Introduced Multi-currency normalization, bringing costs to a single currency unit for budgeting purposes.
+*   **FOCUS 1.3:** Separated Contract Commitment data into its own Dataset, making it more transparent to track Reserved Instances and Savings Plans.
+*   **FOCUS 1.4 (June 2026):** Focused on direct invoice reconciliation by adding the "Invoice Detail" and "Billing Period" Datasets, creating a solid bridge with the Finance team.
+
+By adhering to FOCUS, the FRT FinOps system ensures an open architecture, making it easy to integrate new Cloud Providers in the future without breaking the current data structure.

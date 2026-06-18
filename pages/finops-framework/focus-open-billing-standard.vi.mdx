@@ -1,0 +1,59 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# FOCUS: FinOps Open Cost & Usage Specification
+
+<Callout type="info" emoji="🌟">
+  **FOCUS (FinOps Open Cost & Usage Specification)** là một Tiêu chuẩn Kỹ thuật Mở do **FinOps Foundation** bảo trợ. Mục tiêu cốt lõi của FOCUS là chuẩn hóa dữ liệu hóa đơn (billing data) từ nhiều nhà cung cấp công nghệ khác nhau (Cloud, SaaS, PaaS, AI) về chung một định dạng duy nhất.
+</Callout>
+
+Trong kiến trúc của **FRT FinOps**, việc áp dụng bộ tiêu chuẩn FOCUS giúp chúng ta xây dựng một "Ngôn ngữ chung" cho dữ liệu chi phí, tối ưu hóa quá trình Ingestion và tạo điều kiện cho các AI Agents xử lý số liệu một cách đồng nhất.
+
+---
+
+## 1. Vấn đề cốt lõi mà FOCUS giải quyết
+
+Hiện tại, các kỹ sư FinOps và hệ thống tự động hóa đang gặp phải một "điểm nghẽn" lớn về xử lý dữ liệu:
+
+*   **Sự phân mảnh định dạng:** Mỗi nhà cung cấp (AWS, Azure, Google Cloud, OpenAI...) sử dụng một taxonomy (cấu trúc phân loại) và thuật ngữ tính cước hoàn toàn khác nhau.
+*   **Ví dụ:** Cùng một khái niệm "chi phí sau khi đã áp dụng mã giảm giá", AWS gọi là `UnblendedCost`, Azure gọi là `Cost`, trong khi GCP gọi là `Cost after credits`.
+*   **Hệ lụy:** Quá trình thu thập và chuẩn hóa dữ liệu (Data Ingestion & Normalization) chiếm quá nhiều thời gian, làm chậm trễ quá trình phân tích và đưa ra quyết định kinh doanh.
+
+**Giải pháp của FOCUS:** Chuẩn hóa các thuật ngữ này bằng cách quy định một thư viện cột (Column Library) bắt buộc mà mọi nhà cung cấp dữ liệu (Data Generators) phải tuân theo khi xuất báo cáo chi phí.
+
+---
+
+## 2. Ai tham gia vào Hệ sinh thái FOCUS?
+
+Hệ sinh thái FOCUS xoay quanh hai nhóm người dùng chính:
+
+<Cards>
+  <Card icon="🏢" title="Nhà tạo dữ liệu (Generators)" href="#">
+    Bao gồm các nhà cung cấp dịch vụ Cloud (AWS, Azure, GCP, Oracle...), các hãng phần mềm SaaS, PaaS và Data Cloud. Các đơn vị này có trách nhiệm xuất hóa đơn tuân thủ định dạng của FOCUS.
+  </Card>
+  <Card icon="👥" title="Người tiêu thụ (Consumers)" href="#">
+    Là các tổ chức, kỹ sư FinOps, các Vendor cung cấp Tooling (CloudZero, Apptio...) và **các Automation Agents** trong hệ thống của chúng ta.
+  </Card>
+</Cards>
+
+---
+
+## 3. Các lợi ích của FOCUS cho FRT FinOps
+
+Việc đưa FOCUS vào làm bộ tiêu chuẩn cốt lõi cho **Data Lake** mang lại các giá trị chiến lược:
+
+1. **Khử trùng lặp và Đơn giản hóa Data Pipeline:** Thay vì phải viết hàng chục script ETL khác nhau để dịch ngôn ngữ của từng hãng Cloud, Data Ingestion Agent chỉ cần map dữ liệu về đúng 1 bảng Schema chuẩn của FOCUS.
+2. **Quyết định dựa trên Dữ liệu Tổng thể:** Cho phép team Tài chính (Finance) và team Công nghệ (Engineering) nhìn thấy bức tranh chi phí trên đa nền tảng (Multi-Cloud) trên cùng một Dashboard.
+3. **Phân bổ chi phí (Chargeback) chính xác:** FOCUS hỗ trợ làm rõ khái niệm `ServiceProvider` và `HostProvider`, cũng như cung cấp Invoice ID để ánh xạ chính xác chi phí về từng Product Team.
+4. **Hỗ trợ tối đa cho Multi-Agent:** Các AI Agent (như Anomaly Detection Agent) chỉ cần được huấn luyện trên một định dạng dữ liệu (FOCUS format) là có thể áp dụng phát hiện bất thường cho tất cả các Vendor.
+
+---
+
+## 4. Các bản phát hành quan trọng của FOCUS
+
+Dự án FOCUS đang được cập nhật liên tục với các tính năng mới hỗ trợ mạnh mẽ cho FinOps Practitioner:
+
+*   **FOCUS 1.2:** Hỗ trợ chuẩn hóa đa tiền tệ (Multi-currency normalization), đưa chi phí về chung một đơn vị tiền tệ duy nhất để lập ngân sách.
+*   **FOCUS 1.3:** Tách biệt dữ liệu hợp đồng/cam kết (Contract Commitment) ra thành Dataset riêng, giúp theo dõi Reserved Instances và Savings Plans minh bạch hơn.
+*   **FOCUS 1.4 (Tháng 6/2026):** Tập trung vào việc reconciliation (đối soát) hóa đơn trực tiếp bằng cách bổ sung Dataset "Invoice Detail" và "Billing Period", tạo cầu nối vững chắc với team Tài chính.
+
+Bằng cách tuân thủ FOCUS, hệ thống FRT FinOps đảm bảo được tính mở, dễ dàng tích hợp thêm các Cloud Provider mới trong tương lai mà không làm vỡ kiến trúc dữ liệu hiện tại.
