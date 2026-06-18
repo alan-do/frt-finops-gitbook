@@ -142,10 +142,20 @@ graph TD
 ```
 
 ## 9. Component Architecture
-* **Backend Framework:** **NestJS (Node.js)** chosen for its strict TypeScript typing, modular architecture, and excellent dependency injection, vital for enterprise-grade maintainability.
-* **Frontend:** **Next.js + React** for SSR dashboards and highly responsive UI.
-* **AI Gateway:** A centralized proxy service (e.g., LiteLLM) to route requests between OpenAI, Claude, and Gemini, providing fallback mechanisms and prompt logging.
 
+The system is designed following a Microservices architecture (or a Modular Monolith in the initial phase), comprising the following core services:
+
+### Core Platform Services
+*   **Data Ingestion Service:** Responsible for securely connecting to AWS/Azure/GCP APIs to pull raw billing data on scheduled cron jobs. Handles API rate limits, pagination, and retry mechanisms.
+*   **ETL & Normalization Service:** Processes high-volume raw data. Strips unnecessary columns, maps vendor-specific terminologies to the unified FOCUS standard, and outputs Parquet files.
+*   **Allocation & Rules Engine Service:** The "heart" of the allocation system. Runs deterministic rules against normalized data to accurately calculate costs belonging to specific Teams/Projects based on Tags or CMDB mappings.
+*   **Analytics & Query API (OLAP Service):** Provides high-speed data read APIs. Specifically optimized to execute aggregations on ClickHouse, serving UI dashboard charts with sub-second latency.
+*   **Governance & Alerting Service:** Continuously monitors actual costs against established Budgets. Emits events to Kafka/SQS when thresholds or anomalies are detected.
+
+### Tech & AI Stack
+*   **Backend Framework:** **NestJS (Node.js)** chosen for its strict TypeScript typing, modular architecture, and excellent dependency injection, vital for enterprise-grade maintainability.
+*   **Frontend Framework:** **Next.js + React** for SSR dashboards and highly responsive UI.
+*   **AI Gateway & Agent Orchestrator:** A centralized proxy service (e.g., LiteLLM) to route requests between OpenAI, Claude, and Gemini. Accompanied by an Orchestrator service (using LangGraph or Temporal) to manage Agent lifecycles, contexts, and Human-in-the-Loop workflows.
 ## 10. Data Flow Diagrams
 
 ```mermaid

@@ -142,10 +142,20 @@ graph TD
 ```
 
 ## 9. Kiến trúc Thành phần (Component Architecture)
-* **Backend Framework:** **NestJS (Node.js)** được lựa chọn vì tính nghiêm ngặt của TypeScript, kiến trúc module và Dependency Injection xuất sắc, yếu tố sống còn cho việc bảo trì ở cấp độ Enterprise.
-* **Frontend:** **Next.js + React** để xây dựng các Dashboard SSR với UI phản hồi tốc độ cao.
-* **AI Gateway:** Một Proxy service tập trung (ví dụ: LiteLLM) để định tuyến các request giữa OpenAI, Claude và Gemini, cung cấp cơ chế dự phòng (fallback) và ghi log prompt.
 
+Hệ thống được thiết kế theo kiến trúc Microservices (hoặc Modular Monolith giai đoạn đầu), bao gồm các Services cốt lõi sau:
+
+### Lớp Dịch vụ Nền tảng (Core Services)
+*   **Data Ingestion Service:** Chịu trách nhiệm kết nối an toàn với các API của AWS/Azure/GCP để kéo dữ liệu Billing thô theo lịch trình (Cron jobs). Xử lý cơ chế Retry và Rate-limit.
+*   **ETL & Normalization Service:** Xử lý dữ liệu thô cường độ cao. Lược bỏ các cột không cần thiết, map các thuật ngữ riêng của từng Cloud về chung một chuẩn duy nhất (FOCUS) và xuất ra định dạng Parquet.
+*   **Allocation & Rules Engine Service:** "Trái tim" của hệ thống phân bổ. Chạy các tập quy tắc (Rules) lên dữ liệu đã chuẩn hóa để tính toán chính xác chi phí thuộc về Team/Project nào dựa trên Tag hoặc CMDB.
+*   **Analytics & Query API (OLAP Service):** Cung cấp API đọc dữ liệu siêu tốc. Được tối ưu hóa chuyên biệt để truy vấn trên ClickHouse, phục vụ biểu đồ cho UI với độ trễ dưới 1 giây.
+*   **Governance & Alerting Service:** Liên tục giám sát chi phí thực tế so với Ngân sách (Budget) đã thiết lập. Phát ra các tín hiệu (Events) vào Kafka/SQS khi có dấu hiệu vượt ngưỡng.
+
+### Lớp Công nghệ & AI (Tech & AI Stack)
+*   **Backend Framework:** **NestJS (Node.js)** được lựa chọn vì tính nghiêm ngặt của TypeScript, kiến trúc module và Dependency Injection xuất sắc, yếu tố sống còn cho việc bảo trì ở cấp độ Enterprise.
+*   **Frontend Framework:** **Next.js + React** để xây dựng các Dashboard SSR với UI phản hồi tốc độ cao.
+*   **AI Gateway & Agent Orchestrator:** Một Proxy service tập trung (ví dụ: LiteLLM) để định tuyến các request giữa OpenAI, Claude và Gemini. Đi kèm với nó là dịch vụ điều phối (Orchestrator) sử dụng LangGraph hoặc Temporal để quản lý vòng đời, ngữ cảnh và cơ chế Human-in-the-Loop của các Agent.
 ## 10. Sơ đồ Luồng Dữ liệu (Data Flow Diagrams)
 
 ```mermaid
