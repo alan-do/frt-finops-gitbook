@@ -115,3 +115,10 @@ Việc xây dựng Multi-Agent trên nền tảng FOCUS giúp FRT:
 1. **Model AI dùng chung (Write once, run anywhere):** Các Agent (phát hiện bất thường, phân tích) chỉ cần train/viết prompt một lần trên định dạng FOCUS, và tự động hoạt động đúng với mọi nhà cung cấp (AWS, Azure, SaaS) mà không cần code lại.
 2. **Loại bỏ Bottleneck:** Team FinOps không bị quá tải bởi việc dịch thuật ngữ Billing của từng hãng.
 3. **Mở rộng linh hoạt (Scalable):** Khi có thêm Cloud Vendor mới, chỉ cần cập nhật quy tắc map dữ liệu cho `Data Ingestion Agent`, phần còn lại của hệ thống Multi-Agent vẫn hoạt động bình thường.
+
+## 5. Thách thức & Rủi ro triển khai (Cần lưu ý cho MVP)
+Mặc dù khả thi, nhưng với nguồn lực **1.5 FTE**, việc triển khai kiến trúc này đối mặt với các rủi ro thực tế sau:
+*   **Độ trễ dữ liệu (Data Latency):** Dữ liệu Billing của các hãng Cloud thường bị trễ từ 12-24 giờ. Do đó, "Real-time Detection" thực tế là "Near Real-time" (trễ 1 ngày). Nếu muốn cảnh báo ngay lập tức, phải tích hợp với log hệ thống (rất tốn kém resource).
+*   **Hội chứng Ảo giác (Hallucination) & Rủi ro Auto-Remediation:** LLM có thể suy luận sai. Việc cấp quyền tự động tắt Server (Actionability) cho AI là cực kỳ nguy hiểm. Trong MVP, chỉ nên áp dụng mô hình **Human-in-the-loop** (AI đề xuất, con người duyệt).
+*   **Chi phí chạy AI (Cost of FinOps):** Liên tục đẩy lượng lớn file log vào GPT-4 để phân tích sẽ tiêu tốn chi phí API khổng lồ. Giải pháp: Chỉ dùng AI (LLM) để phân tích *sau khi* các thuật toán thống kê rẻ tiền (như Z-Score) đã phát hiện ra bất thường.
+*   **Quản lý trạng thái (State Management):** Cần xây dựng cơ chế Retry/Error Handling tốt giữa các Agent để tránh hiệu ứng domino (ví dụ: Agent thu thập dữ liệu bị lỗi mạng khiến Agent báo cáo đưa ra thông tin sai lệch).

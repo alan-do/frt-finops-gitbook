@@ -115,3 +115,10 @@ Building a Multi-Agent system on a FOCUS foundation helps FRT:
 1. **Universal AI Models (Write once, run anywhere):** Agents (for anomaly detection and analysis) only need to be trained/prompted once on the FOCUS format, and they automatically work correctly across all providers (AWS, Azure, SaaS) without rewriting code.
 2. **Eliminate Bottlenecks:** The FinOps team is not overwhelmed by translating the billing terminology of each individual vendor.
 3. **Flexible Scalability:** When a new Cloud Vendor is added, only the data mapping rules for the `Data Ingestion Agent` need updating; the rest of the Multi-Agent system continues to function normally.
+
+## 5. Implementation Challenges & Risks (MVP Considerations)
+While highly feasible, implementing this architecture with **1.5 FTE** resources presents the following practical risks:
+*   **Data Latency:** Cloud Billing data is typically delayed by 12-24 hours. Therefore, "Real-time Detection" is practically "Near Real-time" (1-day delay). True real-time alerting requires integration with system logs (which is resource-intensive).
+*   **AI Hallucination & Auto-Remediation Risks:** LLMs can infer incorrectly. Granting AI the authority to automatically shut down servers (Actionability) is extremely dangerous. For the MVP, a **Human-in-the-loop** model (AI proposes, human approves) is mandatory.
+*   **Cost of AI (Cost of FinOps):** Continuously feeding massive log files into GPT-4 for analysis will result in exorbitant API costs. Solution: Only use AI (LLMs) for analysis *after* cheap statistical algorithms (like Z-Score) have detected an anomaly.
+*   **State Management:** Robust Retry/Error Handling mechanisms between Agents are required to prevent a domino effect (e.g., a network error in the Ingestion Agent causing the Reporting Agent to output false information).
