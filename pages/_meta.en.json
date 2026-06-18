@@ -4,5 +4,6 @@
   "finops-framework": "FinOps Framework",
   "scope": "Implementation Scope",
   "development-process": "Development Process",
-  "check-point": "Check Point"
+  "check-point": "Check Point",
+  "architecture": "System Architecture (HLD)"
 }

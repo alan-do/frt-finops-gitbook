@@ -4,5 +4,6 @@
   "finops-framework": "FinOps Framework",
   "scope": "Phạm vi triển khai (Scope)",
   "development-process": "Quy trình Phát triển Công cụ",
-  "check-point": "Check Point"
+  "check-point": "Check Point",
+  "architecture": "Kiến trúc Hệ thống (HLD)"
 }
