@@ -159,6 +159,13 @@ graph LR
     API -->|Context| AI[AI Intelligence]
 ```
 
+### Phân tích Luồng Dữ liệu
+Sơ đồ trên thể hiện luồng di chuyển của dữ liệu từ dạng thô đến khi mang lại giá trị phân tích:
+1.  **Ingestion:** Các file CSV/JSON khổng lồ từ Cloud Provider được hút vào `S3 Raw Zone` nguyên trạng để lưu trữ tham chiếu.
+2.  **Transformation:** Dữ liệu thô được làm sạch, lược bỏ các cột không cần thiết, chuyển đổi sang chuẩn FOCUS và lưu ở định dạng `Parquet` (định dạng nén dạng cột) trong `S3 Clean Zone`.
+3.  **Warehousing:** Dữ liệu Parquet được load cực nhanh vào Data Warehouse (`ClickHouse`) để phục vụ truy vấn OLAP.
+4.  **Allocation & Serving:** Allocation Engine áp dụng các Rules để phân bổ chi phí, lưu kết quả xuống bảng `Allocated Cost`. Dữ liệu cuối cùng được `NestJS API` phục vụ cho giao diện người dùng và cung cấp bối cảnh (Context) cho lớp AI.
+
 ## 11. Mô hình Miền dữ liệu (Domain Model)
 
 ```mermaid
@@ -171,6 +178,12 @@ erDiagram
     ALLOCATION_RULE ||--o{ ALLOCATED_COST : định_nghĩa
     AGENT_ACTION ||--o{ ALERT : điều_tra
 ```
+
+### Giải thích Mô hình Miền (Domain Model)
+Mô hình Miền cốt lõi của FinOps tập trung vào mối quan hệ giữa Chủ sở hữu (Team) và Chi phí (Cost):
+*   **Chủ sở hữu & Giới hạn:** Một `TEAM` (nhóm Engineering/Product) sở hữu nhiều `ACCOUNT` (Cloud Accounts/Subscriptions) và được cấp nhiều `BUDGET` (Ngân sách) khác nhau.
+*   **Chi phí Thô & Phân bổ:** Các `ACCOUNT` phát sinh ra các `BILLING_RECORD` (Bản ghi chi phí thô). Mỗi `BILLING_RECORD` thông qua một `ALLOCATION_RULE` (Quy tắc phân bổ) sẽ tách ra thành một hoặc nhiều `ALLOCATED_COST` (Chi phí thực tế đổ về cho Team).
+*   **Cảnh báo & Tự động hóa:** Khi chi phí vượt ngưỡng, `BUDGET` sẽ kích hoạt `ALERT` (Cảnh báo). Cuối cùng, các `AGENT_ACTION` (Tác tử AI) sẽ nhận nhiệm vụ điều tra các Cảnh báo này.
 
 ## 12. Tổng quan Mô hình Dữ liệu (Data Model Overview)
 * **Billing_Raw:** Dữ liệu gốc từ các provider, bất biến (Immutable) và chỉ cho phép ghi thêm (append-only).

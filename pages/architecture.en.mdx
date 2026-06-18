@@ -159,6 +159,13 @@ graph LR
     API -->|Context| AI[AI Intelligence]
 ```
 
+### Data Flow Analysis
+The diagram above illustrates the movement of data from its raw form to its final analytical value:
+1.  **Ingestion:** Massive CSV/JSON files from Cloud Providers are ingested into the `S3 Raw Zone` in their original state for reference storage.
+2.  **Transformation:** Raw data is cleaned, unnecessary columns are stripped, and it is converted to the FOCUS standard before being saved as `Parquet` (a columnar compression format) in the `S3 Clean Zone`.
+3.  **Warehousing:** Parquet data is rapidly loaded into the Data Warehouse (`ClickHouse`) to serve high-speed OLAP queries.
+4.  **Allocation & Serving:** The Allocation Engine applies rules to allocate costs, storing the results in the `Allocated Cost` table. Finally, the `NestJS API` serves this data to the user dashboard and provides context for the AI layer.
+
 ## 11. Domain Model
 
 ```mermaid
@@ -171,6 +178,12 @@ erDiagram
     ALLOCATION_RULE ||--o{ ALLOCATED_COST : defines
     AGENT_ACTION ||--o{ ALERT : investigates
 ```
+
+### Domain Model Explanation
+The core FinOps Domain Model focuses on the relationship between Ownership (Team) and Cost:
+*   **Ownership & Limits:** A `TEAM` (Engineering/Product group) owns multiple `ACCOUNT`s (Cloud Accounts/Subscriptions) and is assigned multiple `BUDGET`s.
+*   **Raw Costs & Allocation:** `ACCOUNT`s incur `BILLING_RECORD`s (Raw cost records). Each `BILLING_RECORD` is evaluated against an `ALLOCATION_RULE`, generating one or more `ALLOCATED_COST` records (actual costs attributed to a Team).
+*   **Alerts & Automation:** When costs exceed predefined limits, a `BUDGET` triggers an `ALERT`. Finally, AI `AGENT_ACTION`s are tasked with investigating these Alerts.
 
 ## 12. Data Model Overview
 * **Billing_Raw:** Immutable, append-only raw data from providers.
