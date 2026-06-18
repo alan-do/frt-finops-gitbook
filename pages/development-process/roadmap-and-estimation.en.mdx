@@ -1,0 +1,94 @@
+import { Tabs, Tab, Steps, Callout, Cards, Card } from 'nextra/components'
+
+# Roadmap, Estimation & Backlog
+
+This plan is based on the actual team resources of **1.5 FTEs** (1 Full-time, 1 Part-time 50%). The primary strategy is a **lean MVP, prioritizing API/SaaS solutions** rather than building from scratch.
+
+<Tabs items={['🗺️ Detailed Roadmap', '📊 Estimation & 5 Core Stories']}>
+  <Tab>
+    Below is the detailed vertical timeline for the project's execution in Q3/2026.
+    
+    <Steps>
+      ### M1: Backlog Ready (To be completed by June 20, 2026)
+      **Goal:** Prepare all tasks for Sprint 1.
+      - FinOps Lead defines the core User Stories on Jira.
+      - Finalize Read-only access to AWS Accounts and the OpenAI Organization.
+      - Set up the basic Database Schema structure.
+
+      ### M2: MVP Release - Data & Alerts (July 04, 2026)
+      **Goal:** Automated data flow running smoothly with preliminary alerts.
+      - **Task 1:** Write scripts to pull Billing Data (AWS/OpenAI) to the database nightly (Cronjob).
+      - **Task 2:** Clean data and map tags to the correct Product Team names.
+      - **Task 3:** Set up Webhooks to send automated notifications to the `#frt-finops-alerts` Slack channel when a team's cost exceeds 110% of their 7-day average.
+
+      ### M3: Internal Demo & Dashboard (July 18, 2026)
+      **Goal:** Visualize data for presentation to Management.
+      - **Task 1:** Deploy internal Grafana / Metabase.
+      - **Task 2:** Create charts (Bar chart, Line chart) tracking costs by Day/Week and by Team.
+      - **Task 3:** Conduct an internal demo with the CTO & POs to gather feedback on Dashboard UX/UI.
+
+      ### M4: GenAI Integration (August 15, 2026)
+      **Goal:** Apply AI to automatically analyze causes of cost increases.
+      - **Task 1:** Write prompt engineering to feed weekly cost metrics into GPT-4o.
+      - **Task 2:** Ask AI to summarize 3 reasons for cost spikes (e.g., "Team A ran excessively large BigQuery operations on Thursday").
+      - **Task 3:** Automatically send this summary report every Monday morning.
+
+      ### M5: Production Release (September 30, 2026)
+      **Goal:** Final packaging and company-wide rollout.
+      - Begin collecting User/Revenue data from teams to establish the ROI calculation formula.
+      - Hand over documentation (User Manual).
+      - Open Dashboard access to all Product Owners across FRT.
+    </Steps>
+  </Tab>
+
+  <Tab>
+    ### 1. Time & Budget Estimation
+    
+    The project has a budget of **105 man-days** (approx. 14 working weeks). The estimated on-time delivery rate is 70%.
+
+    | Epic / Item | Estimate | Assignment | Risk Level |
+    | :--- | :---: | :--- | :--- |
+    | **E1: Data Pipeline Foundation** | 25 days | 1.0 FTE | High (Depends on DevOps for access) |
+    | **E2: AI Budget Alert** | 15 days | 0.5 FTE | Low |
+    | **E3: GenAI Automated Reporting** | 20 days | 0.5 FTE | Medium (Time-consuming prompt tuning) |
+    | **E4: Real-time Dashboard** | 20 days | 1.0 FTE | Medium |
+    | **E5: ROI Tracking**| 15 days | Shared | Very High (Difficult to measure Value) |
+    | **Buffer (Meetings, Bug Fixes)** | 10 days | Shared | |
+    | **TOTAL** | **105 days**| | *(Tight)* |
+
+    ---
+
+    ### 2. List of 5 Core User Stories (M1 Backlog)
+
+    Below are the 5 core Stories defined by the Product/Tech Lead on Jira, ready for Sprint Planning:
+
+    <Cards>
+      <Card title="🎫 Story 1: Data Automation (Epic 1)" href="#">
+        **As a** FinOps Data Engineer,  
+        **I want to** automatically sync costs from AWS Cost Explorer and OpenAI API into the Database daily,  
+        **So that** I have a Centralized Data Lake (Single Source of Truth) for analysis without having to manually export Excel files.
+      </Card>
+      <Card title="🎫 Story 2: Cost Tagging (Epic 1)" href="#">
+        **As a** FinOps Admin,  
+        **I want to** map AWS `tags` and OpenAI `Project IDs` to the current list of Product Teams,  
+        **So that** the system can accurately allocate costs (Cost Allocation) to each department.
+      </Card>
+      <Card title="🎫 Story 3: Budget Breach Alerts (Epic 2)" href="#">
+        **As a** Product Owner,  
+        **I want to** receive an immediate alert via Slack if my team's Cloud/AI costs exceed the configured budget,  
+        **So that** I can promptly investigate the cause and stop the waste.
+      </Card>
+      <Card title="🎫 Story 4: Visual Monitoring (Epic 4)" href="#">
+        **As a** CTO,  
+        **I want to** have a visual Dashboard (Grafana) showing total costs and the top 3 teams spending the most money,  
+        **So that** I can make quick budget allocation decisions.
+      </Card>
+      <Card title="🎫 Story 5: AI Reporting (Epic 3)" href="#">
+        **As a** Management Team member,  
+        **I want to** receive a weekly report explaining the reasons for cost increases/decreases automatically analyzed and written by GenAI,  
+        **So that** I understand the technical reasons behind the numbers without needing a meeting with the Dev team.
+      </Card>
+    </Cards>
+
+  </Tab>
+</Tabs>

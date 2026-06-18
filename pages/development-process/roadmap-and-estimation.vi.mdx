@@ -1,0 +1,94 @@
+import { Tabs, Tab, Steps, Callout, Cards, Card } from 'nextra/components'
+
+# Roadmap, Estimation & Backlog
+
+Kế hoạch này dựa trên nguồn lực thực tế của team là **1.5 FTE** (1 Full-time, 1 Part-time 50%). Chiến lược chính là **MVP nhỏ gọn, ưu tiên dùng API/SaaS** thay vì tự build từ đầu.
+
+<Tabs items={['🗺️ Chi tiết Lộ trình (Roadmap)', '📊 Estimation & 5 Core Stories']}>
+  <Tab>
+    Dưới đây là chi tiết các hạng mục công việc cần thực hiện theo chiều dọc thời gian (Timeline) cho Quý 3/2026.
+    
+    <Steps>
+      ### M1: Backlog Ready (Hoàn thành trước 20/06/2026)
+      **Mục tiêu:** Chuẩn bị sẵn sàng các đầu việc cho Sprint 1.
+      - Lead FinOps lên danh sách các User Stories cốt lõi trên Jira.
+      - Chốt quyền truy cập (Read-only) vào các AWS Account và OpenAI Organization.
+      - Thiết lập cấu trúc Database Schema cơ bản.
+
+      ### M2: MVP Release - Data & Alerts (04/07/2026)
+      **Mục tiêu:** Luồng dữ liệu tự động chạy mượt mà & có cảnh báo sơ bộ.
+      - **Task 1:** Viết script kéo Billing Data (AWS/OpenAI) về database mỗi đêm (Cronjob).
+      - **Task 2:** Dọn dẹp dữ liệu (Clean data) và map các tags về đúng tên Product Team.
+      - **Task 3:** Setup Webhook gửi thông báo tự động lên channel Slack `#frt-finops-alerts` khi chi phí của một team vượt 110% trung bình 7 ngày trước.
+
+      ### M3: Internal Demo & Dashboard (18/07/2026)
+      **Mục tiêu:** Trực quan hóa dữ liệu để trình bày với Management.
+      - **Task 1:** Deploy Grafana / Metabase nội bộ.
+      - **Task 2:** Tạo các biểu đồ (Bar chart, Line chart) theo dõi chi phí theo Ngày/Tuần và theo Team.
+      - **Task 3:** Demo nội bộ với CTO & các PO để lấy feedback về UX/UI của Dashboard.
+
+      ### M4: GenAI Integration (15/08/2026)
+      **Mục tiêu:** Áp dụng AI để tự động phân tích nguyên nhân tăng chi phí.
+      - **Task 1:** Viết prompt engineering để nạp số liệu chi phí tuần vào GPT-4o.
+      - **Task 2:** Yêu cầu AI tóm tắt 3 lý do khiến chi phí tăng đột biến (vd: "Team A chạy query BigQuery quá lớn vào thứ 5").
+      - **Task 3:** Tự động gửi báo cáo tóm tắt này hàng tuần vào sáng Thứ Hai.
+
+      ### M5: Production Release (30/09/2026)
+      **Mục tiêu:** Đóng gói hoàn thiện và áp dụng cho toàn công ty.
+      - Bắt đầu thu thập dữ liệu User/Revenue từ các team để thiết lập công thức tính ROI.
+      - Bàn giao tài liệu hướng dẫn (User Manual).
+      - Mở quyền truy cập Dashboard cho toàn bộ Product Owners trong FRT.
+    </Steps>
+  </Tab>
+
+  <Tab>
+    ### 1. Kế hoạch Ngân sách Thời gian (Estimation)
+    
+    Dự án có **105 man-days** (khoảng 14 tuần làm việc). Khả năng giao hàng đúng hạn (On-time Delivery) ước tính là 70%.
+
+    | Epic / Hạng mục | Ước lượng | Phân công | Mức độ rủi ro |
+    | :--- | :---: | :--- | :--- |
+    | **E1: Data Pipeline Foundation** | 25 days | 1.0 FTE | Cao (Phụ thuộc DevOps cấp quyền) |
+    | **E2: AI Budget Alert** | 15 days | 0.5 FTE | Thấp |
+    | **E3: GenAI Automated Reporting** | 20 days | 0.5 FTE | Trung bình (Tốn thời gian tune Prompt) |
+    | **E4: Real-time Dashboard** | 20 days | 1.0 FTE | Trung bình |
+    | **E5: ROI Tracking**| 15 days | Chung | Rất cao (Khó đo lường Value) |
+    | **Buffer (Họp, Fix Bug)** | 10 days | Chung | |
+    | **TỔNG CỘNG** | **105 days**| | *(Vừa khít)* |
+
+    ---
+
+    ### 2. Danh sách 5 Core User Stories (M1 Backlog)
+
+    Dưới đây là 5 Stories cốt lõi đã được Product/Tech Lead định nghĩa trên Jira để sẵn sàng cho Sprint Planning:
+
+    <Cards>
+      <Card title="🎫 Story 1: Tự động hóa Dữ liệu (Epic 1)" href="#">
+        **As a** FinOps Data Engineer,  
+        **I want to** tự động đồng bộ chi phí từ AWS Cost Explorer và OpenAI API vào Database mỗi ngày,  
+        **So that** tôi có một nguồn dữ liệu tập trung (Single Source of Truth) để phân tích mà không cần phải export file Excel thủ công.
+      </Card>
+      <Card title="🎫 Story 2: Gắn nhãn chi phí (Epic 1)" href="#">
+        **As a** FinOps Admin,  
+        **I want to** map các `tags` của AWS và `Project IDs` của OpenAI với danh sách các Product Team hiện tại,  
+        **So that** hệ thống có thể chia tiền (Cost Allocation) chính xác cho từng phòng ban.
+      </Card>
+      <Card title="🎫 Story 3: Cảnh báo vượt Ngân sách (Epic 2)" href="#">
+        **As a** Product Owner,  
+        **I want to** nhận được cảnh báo ngay lập tức qua Slack nếu chi phí Cloud/AI của team tôi vượt quá ngân sách cài đặt,  
+        **So that** tôi có thể kịp thời điều tra nguyên nhân và chặn đứng lãng phí.
+      </Card>
+      <Card title="🎫 Story 4: Giám sát Trực quan (Epic 4)" href="#">
+        **As a** CTO,  
+        **I want to** có một Dashboard trực quan (Grafana) hiển thị tổng chi phí và top 3 team tiêu nhiều tiền nhất,  
+        **So that** tôi có thể ra quyết định điều phối ngân sách nhanh chóng.
+      </Card>
+      <Card title="🎫 Story 5: Báo cáo bằng AI (Epic 3)" href="#">
+        **As a** Management Team member,  
+        **I want to** nhận được một báo cáo giải thích nguyên nhân tăng/giảm chi phí hàng tuần do GenAI tự động phân tích và viết,  
+        **So that** tôi hiểu được lý do kỹ thuật đằng sau các con số mà không cần họp với team Dev.
+      </Card>
+    </Cards>
+
+  </Tab>
+</Tabs>
