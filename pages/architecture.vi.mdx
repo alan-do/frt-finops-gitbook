@@ -50,27 +50,49 @@ Cung cấp một lăng kính tập trung (single pane of glass) cho toàn bộ c
 C4Context
     title Sơ đồ Ngữ cảnh Hệ thống - Enterprise FinOps Platform
     
-    Person(user, "Người dùng FinOps", "Engineers, Finance, CTO")
+    %% Actors
+    Person(engineer, "Engineering Teams", "DevOps, SRE, Tech Leads")
+    Person(finance, "Finance & Executive", "CFO, FinOps Analysts, CTO")
     
+    %% Main System
     System_Boundary(finops, "Enterprise FinOps Platform") {
-        System(platform, "Core Platform", "Thu thập, Chuẩn hóa, Phân bổ, Phân tích")
+        System(platform, "Core Platform", "Thu thập, Chuẩn hóa, Phân bổ, Phân tích & Tự động hóa")
     }
     
+    %% External Systems - Data Sources
     System_Ext(aws, "AWS CUR", "Dữ liệu Billing")
     System_Ext(azure, "Azure Billing", "Dữ liệu Billing")
     System_Ext(gcp, "GCP Billing", "Dữ liệu Billing")
-    System_Ext(k8s, "Kubernetes", "Dữ liệu Usage")
+    System_Ext(k8s, "Kubernetes / Datadog", "Dữ liệu Usage Metrics")
     System_Ext(erp, "ERP / CMDB", "Dữ liệu Tài chính & Sơ đồ Tổ chức")
-    System_Ext(llm, "Nhà cung cấp LLM", "OpenAI / Claude / Gemini")
     
-    Rel(user, platform, "Xem dashboard, phê duyệt hành động của Agent")
-    Rel(platform, aws, "Kéo dữ liệu")
-    Rel(platform, azure, "Kéo dữ liệu")
-    Rel(platform, gcp, "Kéo dữ liệu")
-    Rel(platform, k8s, "Kéo dữ liệu")
+    %% External Systems - AI & Ops
+    System_Ext(llm, "Nhà cung cấp LLM", "OpenAI / Claude / Gemini")
+    System_Ext(idp, "Identity Provider", "Okta / Entra ID")
+    System_Ext(itsm, "ITSM", "Jira / ServiceNow")
+    System_Ext(chat, "Kênh Giao tiếp", "Slack / MS Teams")
+    
+    %% Relationships
+    Rel(engineer, platform, "Xem cost team mình, duyệt hành động Agent")
+    Rel(finance, platform, "Xem Dashboard tổng thể, thiết lập Budget")
+    
+    Rel(platform, idp, "Xác thực SSO & Cấp quyền RBAC")
+    Rel(platform, aws, "Kéo dữ liệu Billing")
+    Rel(platform, azure, "Kéo dữ liệu Billing")
+    Rel(platform, gcp, "Kéo dữ liệu Billing")
+    Rel(platform, k8s, "Kéo dữ liệu Usage")
     Rel(platform, erp, "Đồng bộ Master Data")
-    Rel(platform, llm, "Truy vấn (NLQ, Tóm tắt)")
+    
+    Rel(platform, llm, "Truy vấn NLQ & Tóm tắt")
+    Rel(platform, itsm, "Tạo ticket xử lý lãng phí tự động")
+    Rel(platform, chat, "Gửi Cảnh báo & Nhận tương tác (ChatOps)")
 ```
+
+### Phân tích Ngữ cảnh Hệ thống (System Context Analysis)
+Sơ đồ C4 Context trên minh họa hệ sinh thái mở rộng mà Nền tảng FinOps phải tương tác ở cấp độ Enterprise:
+*   **Phân tách Người dùng (Actors):** Nhóm **Engineering** chỉ tương tác với dữ liệu thuộc về mảng của họ và phản hồi các yêu cầu tối ưu hóa. Trong khi đó, nhóm **Finance & Executive** có quyền nhìn toàn cảnh (holistic view) để hoạch định ngân sách.
+*   **Tích hợp Identity (IdP):** Để đảm bảo tính bảo mật "Row-level Security" (ai chỉ được xem tiền của người nấy), hệ thống bắt buộc phải tích hợp với SSO (Okta/Entra ID).
+*   **Hệ sinh thái Vận hành (ITSM & Chat):** Không chỉ là một công cụ Read-only, FinOps Platform đẩy trực tiếp các phát hiện bất thường (Anomalies) và khuyến nghị tối ưu hóa thành Ticket trên **Jira/ServiceNow** để ép KPI xử lý, đồng thời sử dụng **Slack/Teams** làm kênh phê duyệt HITL nhanh (ChatOps).
 
 ## 8. Sơ đồ Kiến trúc Cấp cao (High Level Architecture Diagram)
 

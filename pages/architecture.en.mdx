@@ -50,27 +50,49 @@ To provide a single pane of glass for all cloud and infrastructure expenditures,
 C4Context
     title System Context Diagram - Enterprise FinOps Platform
     
-    Person(user, "FinOps User", "Engineers, Finance, CTO")
+    %% Actors
+    Person(engineer, "Engineering Teams", "DevOps, SRE, Tech Leads")
+    Person(finance, "Finance & Executive", "CFO, FinOps Analysts, CTO")
     
+    %% Main System
     System_Boundary(finops, "Enterprise FinOps Platform") {
-        System(platform, "Core Platform", "Ingests, Normalizes, Allocates, Analyzes")
+        System(platform, "Core Platform", "Ingest, Normalize, Allocate, Analyze & Automate")
     }
     
+    %% External Systems - Data Sources
     System_Ext(aws, "AWS CUR", "Billing Data")
     System_Ext(azure, "Azure Billing", "Billing Data")
     System_Ext(gcp, "GCP Billing", "Billing Data")
-    System_Ext(k8s, "Kubernetes", "Usage Data")
-    System_Ext(erp, "ERP / CMDB", "Org & Financial Data")
-    System_Ext(llm, "LLM Providers", "OpenAI / Claude / Gemini")
+    System_Ext(k8s, "Kubernetes / Datadog", "Usage Metrics")
+    System_Ext(erp, "ERP / CMDB", "Financial Data & Org Chart")
     
-    Rel(user, platform, "Views dashboards, approves Agent actions")
-    Rel(platform, aws, "Pulls")
-    Rel(platform, azure, "Pulls")
-    Rel(platform, gcp, "Pulls")
-    Rel(platform, k8s, "Pulls")
+    %% External Systems - AI & Ops
+    System_Ext(llm, "LLM Providers", "OpenAI / Claude / Gemini")
+    System_Ext(idp, "Identity Provider", "Okta / Entra ID")
+    System_Ext(itsm, "ITSM", "Jira / ServiceNow")
+    System_Ext(chat, "Communication", "Slack / MS Teams")
+    
+    %% Relationships
+    Rel(engineer, platform, "Views team costs, approves Agent actions")
+    Rel(finance, platform, "Views holistic dashboard, sets budgets")
+    
+    Rel(platform, idp, "Authenticates SSO & Enforces RBAC")
+    Rel(platform, aws, "Pulls Billing Data")
+    Rel(platform, azure, "Pulls Billing Data")
+    Rel(platform, gcp, "Pulls Billing Data")
+    Rel(platform, k8s, "Pulls Usage Metrics")
     Rel(platform, erp, "Syncs Master Data")
-    Rel(platform, llm, "Queries (NLQ, Summaries)")
+    
+    Rel(platform, llm, "Queries NLQ & Summaries")
+    Rel(platform, itsm, "Creates auto-remediation tickets")
+    Rel(platform, chat, "Sends alerts & receives ChatOps approvals")
 ```
+
+### System Context Analysis
+The C4 Context diagram above illustrates the extended ecosystem that the Enterprise FinOps Platform must interact with:
+*   **Separation of Actors:** The **Engineering Teams** only interact with data scoped to their domain and respond to optimization requests. Conversely, the **Finance & Executive** group has a holistic view for organizational budget planning.
+*   **Identity Integration (IdP):** To enforce "Row-level Security" (preventing teams from viewing other teams' costs), the system must tightly integrate with an enterprise SSO provider (Okta/Entra ID).
+*   **Operational Ecosystem (ITSM & Chat):** Rather than just being a read-only dashboard, the FinOps Platform directly pushes detected anomalies and optimization recommendations as Tickets to **Jira/ServiceNow** to enforce resolution KPIs. Simultaneously, it leverages **Slack/Teams** for rapid Human-in-the-Loop (HITL) approvals via ChatOps.
 
 ## 8. High Level Architecture Diagram
 
