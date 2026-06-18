@@ -1,3 +1,5 @@
+import { useRouter } from 'next/router'
+
 export default {
   logo: <strong>FRT FinOps</strong>,
   project: {
@@ -12,9 +14,10 @@ export default {
       titleTemplate: '%s – FRT FinOps'
     }
   },
-  primaryHue: 20, // Orange
+  primaryHue: 20,
   sidebar: {
     defaultMenuCollapseLevel: 1,
     toggleButton: true
-  }
+  },
+  // Cache buster for Vercel: 1
 }
