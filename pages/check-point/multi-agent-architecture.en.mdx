@@ -14,33 +14,54 @@ Below is the communication model between Agents in the FinOps system, centered a
 
 ```mermaid
 graph TD
+    classDef cloud fill:#f8fafc,stroke:#94a3b8,stroke-width:2px,color:#334155,stroke-dasharray: 5 5
     classDef agent fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
     classDef db fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#14532d
     classDef output fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d
+    classDef core fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#9a3412
 
-    Orchestrator[🧠 Workflow Orchestrator / LangChain]
-    
-    A1[🕵️ Data Ingestion Agent]:::agent
-    A2[🚨 Anomaly Detection Agent]:::agent
-    A3[💡 Optimization Analyst Agent]:::agent
-    A4[🗣️ Reporting & Comm Agent]:::agent
+    subgraph External_Sources ["☁️ Data Generators (Multi-Cloud / SaaS)"]
+        AWS[AWS Cost Explorer]:::cloud
+        Azure[Azure Billing API]:::cloud
+        OAI[OpenAI Usage API]:::cloud
+    end
 
-    DB[(FOCUS Central Data Lake)]:::db
-    Channel[Internal Channel / Email]:::output
+    subgraph Multi_Agent_System ["🤖 Autonomous FinOps Multi-Agent System"]
+        Orchestrator[🧠 Orchestrator / LangChain]:::core
+        
+        A1[🕵️ Data Ingestion Agent]:::agent
+        A2[🚨 Anomaly Detection Agent]:::agent
+        A3[💡 Optimization Analyst Agent]:::agent
+        A4[🗣️ Reporting Agent]:::agent
 
-    Orchestrator --> A1
-    Orchestrator --> A2
-    Orchestrator --> A3
-    Orchestrator --> A4
+        Orchestrator -->|Delegate| A1
+        Orchestrator -->|Coordinate| A2
+        Orchestrator -->|Assign Task| A3
+        Orchestrator -->|Synthesize| A4
+    end
 
-    A1 -->|Pull Billing & Transform to FOCUS standard| DB
-    DB -->|Stream normalized BilledCost| A2
-    DB -->|Query Historical FOCUS Data| A3
+    subgraph Data_Layer ["🗄️ Standardized Data Layer"]
+        DB[(FOCUS Data Lake \n Schema)]:::db
+    end
 
-    A2 -->|Detect Cost Spike!| A4
-    A3 -->|Optimization Proposal (ResourceName)| A4
+    subgraph Action_Layer ["⚡ Action & Notification"]
+        Channel[Internal Channel / Email]:::output
+        Remediation[Auto-Remediation]:::output
+    end
+
+    AWS -->|Raw Billing| A1
+    Azure -->|Raw Billing| A1
+    OAI -->|API Usage| A1
+
+    A1 -->|Transform to FOCUS| DB
+    DB -->|Stream 'BilledCost'| A2
+    DB -->|Query Historical Data| A3
+
+    A2 -->|Alert: Cost Spike!| A4
+    A3 -->|Optimization Proposal| A4
 
     A4 -->|Natural Language Report| Channel
+    Orchestrator -.->|Actionability| Remediation
 ```
 
 ## 2. The Role of Each Automation Agent in the FOCUS Ecosystem

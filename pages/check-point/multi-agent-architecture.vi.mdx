@@ -14,33 +14,54 @@ Dưới đây là mô hình giao tiếp giữa các Agents trong hệ thống Fi
 
 ```mermaid
 graph TD
+    classDef cloud fill:#f8fafc,stroke:#94a3b8,stroke-width:2px,color:#334155,stroke-dasharray: 5 5
     classDef agent fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
     classDef db fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#14532d
     classDef output fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d
+    classDef core fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#9a3412
 
-    Orchestrator[🧠 Workflow Orchestrator / LangChain]
-    
-    A1[🕵️ Data Ingestion Agent]:::agent
-    A2[🚨 Anomaly Detection Agent]:::agent
-    A3[💡 Optimization Analyst Agent]:::agent
-    A4[🗣️ Reporting & Comm Agent]:::agent
+    subgraph External_Sources ["☁️ Data Generators (Multi-Cloud / SaaS)"]
+        AWS[AWS Cost Explorer]:::cloud
+        Azure[Azure Billing API]:::cloud
+        OAI[OpenAI Usage API]:::cloud
+    end
 
-    DB[(FOCUS Central Data Lake)]:::db
-    Channel[Kênh nội bộ / Email]:::output
+    subgraph Multi_Agent_System ["🤖 Autonomous FinOps Multi-Agent System"]
+        Orchestrator[🧠 Orchestrator / LangChain]:::core
+        
+        A1[🕵️ Data Ingestion Agent]:::agent
+        A2[🚨 Anomaly Detection Agent]:::agent
+        A3[💡 Optimization Analyst Agent]:::agent
+        A4[🗣️ Reporting Agent]:::agent
 
-    Orchestrator --> A1
-    Orchestrator --> A2
-    Orchestrator --> A3
-    Orchestrator --> A4
+        Orchestrator -->|Ủy quyền| A1
+        Orchestrator -->|Điều phối| A2
+        Orchestrator -->|Giao việc| A3
+        Orchestrator -->|Tổng hợp| A4
+    end
 
-    A1 -->|Kéo Billing & Transform sang chuẩn FOCUS| DB
-    DB -->|Stream chuẩn hóa BilledCost| A2
-    DB -->|Query Historical FOCUS Data| A3
+    subgraph Data_Layer ["🗄️ Standardized Data Layer"]
+        DB[(FOCUS Data Lake \n Schema)]:::db
+    end
 
-    A2 -->|Phát hiện Cost Spike!| A4
-    A3 -->|Đề xuất tối ưu (ResourceName)| A4
+    subgraph Action_Layer ["⚡ Action & Notification"]
+        Channel[Kênh Nội Bộ / Email]:::output
+        Remediation[Auto-Remediation]:::output
+    end
 
-    A4 -->|Báo cáo ngôn ngữ tự nhiên| Channel
+    AWS -->|Raw Billing| A1
+    Azure -->|Raw Billing| A1
+    OAI -->|API Usage| A1
+
+    A1 -->|Transform to FOCUS| DB
+    DB -->|Stream 'BilledCost'| A2
+    DB -->|Query Historical Data| A3
+
+    A2 -->|Alert: Cost Spike!| A4
+    A3 -->|Đề xuất Tối ưu| A4
+
+    A4 -->|Báo cáo Ngôn ngữ tự nhiên| Channel
+    Orchestrator -.->|Actionability| Remediation
 ```
 
 ## 2. Vai trò của từng Automation Agent trong hệ sinh thái FOCUS
