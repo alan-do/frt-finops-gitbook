@@ -1,89 +1,89 @@
 # Enterprise FinOps Platform - High Level Design (HLD)
 
-## 1. Executive Summary
-This High Level Design (HLD) outlines the architecture for an Enterprise FinOps Platform designed to ingest, normalize, allocate, and optimize cloud financial data across multi-cloud environments (AWS, Azure, GCP) and internal systems (Kubernetes, Datadog, CMDB, ERP). The architecture strictly enforces a separation between deterministic financial calculations and AI-driven intelligence, utilizing an Agentic framework for automated remediation, root cause analysis, and data quality assurance with robust Human-in-the-Loop (HITL) safeguards.
+## 1. Tóm tắt điều hành (Executive Summary)
+Tài liệu Thiết kế Kiến trúc Cấp cao (HLD) này phác thảo kiến trúc cho Nền tảng Enterprise FinOps được thiết kế để thu thập (ingest), chuẩn hóa (normalize), phân bổ (allocate) và tối ưu hóa dữ liệu tài chính đám mây trên các môi trường Multi-Cloud (AWS, Azure, GCP) và các hệ thống nội bộ (Kubernetes, Datadog, CMDB, ERP). Kiến trúc này thực thi nghiêm ngặt sự tách biệt giữa việc tính toán tài chính mang tính tất định (deterministic) và lớp trí tuệ nhân tạo (AI-driven intelligence). Hệ thống sử dụng framework Đa tác tử (Agentic) để tự động khắc phục sự cố, phân tích nguyên nhân gốc rễ và đảm bảo chất lượng dữ liệu với các biện pháp bảo vệ "Human-in-the-Loop" (HITL - Phê duyệt bởi con người) mạnh mẽ.
 
-## 2. Product Vision
-To provide a single pane of glass for all cloud and infrastructure expenditures, empowering engineering teams to take ownership of their costs while giving finance and executive leadership absolute confidence in data accuracy, allocation rules, and chargeback mechanisms.
+## 2. Tầm nhìn Sản phẩm (Product Vision)
+Cung cấp một lăng kính tập trung (single pane of glass) cho toàn bộ chi phí hạ tầng và đám mây, trao quyền cho các team kỹ thuật (Engineering) tự làm chủ chi phí của họ, đồng thời mang lại cho bộ phận Tài chính và Ban lãnh đạo (Executive) sự tự tin tuyệt đối vào tính chính xác của dữ liệu, quy tắc phân bổ và cơ chế Chargeback (tính phí nội bộ).
 
-## 3. Business Goals
-* **Visibility:** Unified view of multi-cloud and internal infrastructure costs.
-* **Accountability:** 100% allocation of costs via deterministic chargeback/showback.
-* **Governance:** Proactive budget alerting and anomaly detection.
-* **Optimization:** Actionable, data-driven recommendations to reduce waste.
-* **Automation:** Agentic workflows to resolve data anomalies and implement optimizations safely.
+## 3. Mục tiêu Kinh doanh (Business Goals)
+* **Minh bạch (Visibility):** Có góc nhìn thống nhất về chi phí của Multi-cloud và hạ tầng nội bộ.
+* **Trách nhiệm (Accountability):** Phân bổ 100% chi phí thông qua cơ chế Chargeback/Showback tất định.
+* **Quản trị (Governance):** Cảnh báo ngân sách chủ động và phát hiện bất thường (anomaly detection).
+* **Tối ưu hóa (Optimization):** Đưa ra các khuyến nghị tối ưu hóa thực tiễn dựa trên dữ liệu để giảm lãng phí.
+* **Tự động hóa (Automation):** Sử dụng Agent để xử lý dữ liệu bất thường và áp dụng tối ưu hóa một cách an toàn.
 
-## 4. Architecture Principles
+## 4. Nguyên tắc Kiến trúc (Architecture Principles)
 > [!IMPORTANT]
-> **Principle 1: Data Correctness First**
-> FinOps data is financial data. Accuracy, auditability, traceability, and reproducibility strictly override AI capabilities. Every allocation and transformation must be deterministically traceable.
+> **Nguyên tắc 1: Tính chính xác của dữ liệu là ưu tiên hàng đầu**
+> Dữ liệu FinOps là dữ liệu tài chính. Độ chính xác, khả năng kiểm toán (auditability), truy xuất nguồn gốc (traceability) và khả năng tái lập (reproducibility) hoàn toàn vượt trội so với năng lực AI. Mọi sự phân bổ và chuyển đổi dữ liệu phải mang tính tất định và có thể truy xuất nguồn gốc.
 
 > [!WARNING]
-> **Principle 2: AI Must Not Participate in Cost Calculation**
-> AI/LLMs must NEVER be part of billing calculation, allocation logic, or the financial source of truth. These must remain 100% rule-based.
+> **Nguyên tắc 2: AI Không được tham gia vào tính toán chi phí**
+> AI/LLM TUYỆT ĐỐI KHÔNG ĐƯỢC tham gia vào quá trình tính toán billing, logic phân bổ chi phí, hoặc trở thành nguồn chân lý (source of truth) về tài chính. Các khâu này phải dựa 100% vào tập quy tắc (rule-based).
 
 > [!NOTE]
-> **Principle 3: AI as Intelligence Layer**
-> AI is restricted to summarization, forecasting, recommendations, and natural language querying on top of already validated, normalized data.
+> **Nguyên tắc 3: AI đóng vai trò là Lớp Phân tích thông minh (Intelligence Layer)**
+> AI bị giới hạn trong việc tóm tắt, dự báo, đưa ra khuyến nghị và trả lời các truy vấn bằng ngôn ngữ tự nhiên (NLQ) dựa trên dữ liệu đã được chuẩn hóa và xác thực.
 
 > [!CAUTION]
-> **Principle 4: Agentic Automation**
-> Agents are used for anomaly investigation and auto-remediation. All agent actions require a confidence score, a strict audit trail, and Human-in-the-Loop (HITL) approval when confidence falls below the defined threshold.
+> **Nguyên tắc 4: Tự động hóa bằng Agent (Agentic Automation)**
+> Các Agent được sử dụng để điều tra bất thường và tự động khắc phục (auto-remediation). Mọi hành động của Agent đều yêu cầu Điểm tin cậy (Confidence score), nhật ký kiểm toán nghiêm ngặt và sự phê duyệt của con người (HITL) khi độ tin cậy thấp hơn ngưỡng cho phép.
 
-## 5. Functional Requirements
-* Multi-cloud ingestion (AWS CUR, Azure Export, GCP Billing).
-* Kubernetes and SaaS cost correlation.
-* Rule-based Cost Allocation Engine (Tag-based, Account-based, Shared-cost).
-* AI-driven Cost Summary and Executive Reporting.
-* Agentic Data Quality monitoring and Auto-Remediation with HITL.
-* Natural Language Query (NLQ) interface for cost exploration.
+## 5. Yêu cầu Chức năng (Functional Requirements)
+* Thu thập dữ liệu Multi-cloud (AWS CUR, Azure Export, GCP Billing).
+* Tương quan chi phí giữa Kubernetes và SaaS.
+* Engine Phân bổ chi phí dựa trên Rule (Tag-based, Account-based, Shared-cost).
+* Báo cáo Tóm tắt cho Executive bằng AI.
+* Agentic giám sát chất lượng dữ liệu và tự động can thiệp (Auto-Remediation) kết hợp HITL.
+* Giao diện Truy vấn bằng ngôn ngữ tự nhiên (NLQ) để khám phá chi phí.
 
-## 6. Non-Functional Requirements
-* **Scalability:** Handle millions of billing records per day.
-* **Latency:** Near real-time anomaly detection; daily batch aggregations.
-* **Auditability:** Immutable event sourcing for all allocation rules and agent actions.
-* **Security:** SOC2 compliant, RBAC at the row-level (teams only see their costs).
+## 6. Yêu cầu Phi chức năng (Non-Functional Requirements)
+* **Khả năng mở rộng (Scalability):** Xử lý hàng triệu record billing mỗi ngày.
+* **Độ trễ (Latency):** Phát hiện bất thường gần như thời gian thực (Near real-time); tổng hợp batch hàng ngày.
+* **Kiểm toán (Auditability):** Event sourcing bất biến đối với mọi luật phân bổ và hành động của Agent.
+* **Bảo mật (Security):** Tuân thủ SOC2, phân quyền RBAC ở cấp độ dòng dữ liệu (Row-level: team nào chỉ nhìn thấy cost của team đó).
 
-## 7. System Context Diagram
+## 7. Sơ đồ Ngữ cảnh Hệ thống (System Context Diagram)
 
 ```mermaid
 C4Context
-    title System Context Diagram - Enterprise FinOps Platform
+    title Sơ đồ Ngữ cảnh Hệ thống - Enterprise FinOps Platform
     
-    Person(user, "FinOps User", "Engineers, Finance, CTO")
+    Person(user, "Người dùng FinOps", "Engineers, Finance, CTO")
     
     System_Boundary(finops, "Enterprise FinOps Platform") {
-        System(platform, "Core Platform", "Ingests, Normalizes, Allocates, Analyzes")
+        System(platform, "Core Platform", "Thu thập, Chuẩn hóa, Phân bổ, Phân tích")
     }
     
-    System_Ext(aws, "AWS CUR", "Billing Data")
-    System_Ext(azure, "Azure Billing", "Billing Data")
-    System_Ext(gcp, "GCP Billing", "Billing Data")
-    System_Ext(k8s, "Kubernetes", "Usage Data")
-    System_Ext(erp, "ERP / CMDB", "Org & Financial Data")
-    System_Ext(llm, "LLM Providers", "OpenAI / Claude / Gemini")
+    System_Ext(aws, "AWS CUR", "Dữ liệu Billing")
+    System_Ext(azure, "Azure Billing", "Dữ liệu Billing")
+    System_Ext(gcp, "GCP Billing", "Dữ liệu Billing")
+    System_Ext(k8s, "Kubernetes", "Dữ liệu Usage")
+    System_Ext(erp, "ERP / CMDB", "Dữ liệu Tài chính & Sơ đồ Tổ chức")
+    System_Ext(llm, "Nhà cung cấp LLM", "OpenAI / Claude / Gemini")
     
-    Rel(user, platform, "Views dashboards, approves Agent actions")
-    Rel(platform, aws, "Pulls")
-    Rel(platform, azure, "Pulls")
-    Rel(platform, gcp, "Pulls")
-    Rel(platform, k8s, "Pulls")
-    Rel(platform, erp, "Syncs Master Data")
-    Rel(platform, llm, "Queries (NLQ, Summaries)")
+    Rel(user, platform, "Xem dashboard, phê duyệt hành động của Agent")
+    Rel(platform, aws, "Kéo dữ liệu")
+    Rel(platform, azure, "Kéo dữ liệu")
+    Rel(platform, gcp, "Kéo dữ liệu")
+    Rel(platform, k8s, "Kéo dữ liệu")
+    Rel(platform, erp, "Đồng bộ Master Data")
+    Rel(platform, llm, "Truy vấn (NLQ, Tóm tắt)")
 ```
 
-## 8. High Level Architecture Diagram
+## 8. Sơ đồ Kiến trúc Cấp cao (High Level Architecture Diagram)
 
 ```mermaid
 graph TD
-    subgraph Layer1 ["Layer 1: Data Collection"]
+    subgraph Layer1 ["Layer 1: Khối Thu thập Dữ liệu"]
         C_AWS[AWS Connector]
         C_AZURE[Azure Connector]
         C_GCP[GCP Connector]
         C_K8S[K8s Connector]
     end
 
-    subgraph Layer2 ["Layer 2: FinOps Core Platform"]
+    subgraph Layer2 ["Layer 2: Khối FinOps Core Platform"]
         ETL[ETL & Normalization Engine]
         DQ[Data Quality Framework]
         DB[(Data Lake / DWH)]
@@ -97,14 +97,14 @@ graph TD
         DB --> ANALYTICS
     end
 
-    subgraph Layer3 ["Layer 3: AI Intelligence Layer"]
+    subgraph Layer3 ["Layer 3: Khối Trí tuệ AI (Intelligence Layer)"]
         AIGW[AI Gateway]
         NLQ[NL Query Service]
         REC[Recommendation Engine]
         SUM[Summary Service]
     end
 
-    subgraph Layer4 ["Layer 4: Agent Automation Layer"]
+    subgraph Layer4 ["Layer 4: Khối Tự động hóa Agent"]
         ORCH[Agent Orchestrator]
         DQA[Data Quality Agent]
         RCA[Root Cause Agent]
@@ -116,142 +116,142 @@ graph TD
     Layer3 --> AIGW
     ORCH --> DQA & RCA & ARA
     DB -.-> ORCH
-    ARA -.->|HITL Approval| User((Human))
+    ARA -.->|Phê duyệt HITL| User((Human))
 ```
 
-## 9. Component Architecture
-* **Backend Framework:** **NestJS (Node.js)** chosen for its strict TypeScript typing, modular architecture, and excellent dependency injection, vital for enterprise-grade maintainability.
-* **Frontend:** **Next.js + React** for SSR dashboards and highly responsive UI.
-* **AI Gateway:** A centralized proxy service (e.g., LiteLLM) to route requests between OpenAI, Claude, and Gemini, providing fallback mechanisms and prompt logging.
+## 9. Kiến trúc Thành phần (Component Architecture)
+* **Backend Framework:** **NestJS (Node.js)** được lựa chọn vì tính nghiêm ngặt của TypeScript, kiến trúc module và Dependency Injection xuất sắc, yếu tố sống còn cho việc bảo trì ở cấp độ Enterprise.
+* **Frontend:** **Next.js + React** để xây dựng các Dashboard SSR với UI phản hồi tốc độ cao.
+* **AI Gateway:** Một Proxy service tập trung (ví dụ: LiteLLM) để định tuyến các request giữa OpenAI, Claude và Gemini, cung cấp cơ chế dự phòng (fallback) và ghi log prompt.
 
-## 10. Data Flow Diagrams
+## 10. Sơ đồ Luồng Dữ liệu (Data Flow Diagrams)
 
 ```mermaid
 graph LR
     Raw[Raw Billing CSV/JSON] -->|Ingest| S3[S3 Raw Zone]
     S3 -->|Parse & Clean| Parquet[S3 Clean Zone (Parquet)]
     Parquet -->|Load| CH[(ClickHouse DWH)]
-    CH -->|Rule Engine| Alloc[Allocated Costs Table]
+    CH -->|Rule Engine| Alloc[Bảng Chi phí đã Phân bổ]
     Alloc -->|Serve| API[NestJS API]
     API -->|Visualize| UI[Next.js Dashboard]
     API -->|Context| AI[AI Intelligence]
 ```
 
-## 11. Domain Model
+## 11. Mô hình Miền dữ liệu (Domain Model)
 
 ```mermaid
 erDiagram
-    BILLING_RECORD ||--o{ ALLOCATED_COST : generates
-    ACCOUNT ||--o{ BILLING_RECORD : incurs
-    TEAM ||--o{ ACCOUNT : owns
-    TEAM ||--o{ BUDGET : has
-    BUDGET ||--o{ ALERT : triggers
-    ALLOCATION_RULE ||--o{ ALLOCATED_COST : defines
-    AGENT_ACTION ||--o{ ALERT : investigates
+    BILLING_RECORD ||--o{ ALLOCATED_COST : tạo_ra
+    ACCOUNT ||--o{ BILLING_RECORD : phát_sinh
+    TEAM ||--o{ ACCOUNT : sở_hữu
+    TEAM ||--o{ BUDGET : có
+    BUDGET ||--o{ ALERT : kích_hoạt
+    ALLOCATION_RULE ||--o{ ALLOCATED_COST : định_nghĩa
+    AGENT_ACTION ||--o{ ALERT : điều_tra
 ```
 
-## 12. Data Model Overview
-* **Billing_Raw:** Immutable, append-only raw data from providers.
-* **FOCUS_Normalized:** Data mapped to the FOCUS (FinOps Open Cost & Usage Specification) standard schema (e.g., `BilledCost`, `ChargeCategory`, `ProviderName`).
-* **Allocated_Cost:** Enriched records containing mapped `TeamID`, `BusinessUnit`, and `Environment`.
-* **Audit_Log:** Immutable log of all allocation rule changes and Agent actions.
+## 12. Tổng quan Mô hình Dữ liệu (Data Model Overview)
+* **Billing_Raw:** Dữ liệu gốc từ các provider, bất biến (Immutable) và chỉ cho phép ghi thêm (append-only).
+* **FOCUS_Normalized:** Dữ liệu được ánh xạ theo cấu trúc chuẩn của FOCUS (FinOps Open Cost & Usage Specification) (ví dụ: `BilledCost`, `ChargeCategory`, `ProviderName`).
+* **Allocated_Cost:** Dữ liệu đã được làm giàu (Enriched), chứa thông tin ánh xạ như `TeamID`, `BusinessUnit`, và `Environment`.
+* **Audit_Log:** Nhật ký bất biến lưu trữ mọi thay đổi về quy tắc phân bổ và hành động của Agent.
 
-## 13. ETL Architecture
-* **Extract:** Scheduled cron jobs (via Temporal) trigger Connectors to pull data from S3 buckets (AWS CUR) or APIs (Azure/GCP).
-* **Transform:** Node.js streams process raw files, mapping vendor-specific columns to the FOCUS standard.
-* **Load:** Processed data is saved as Parquet files in S3 and bulk-inserted into ClickHouse for fast OLAP querying.
+## 13. Kiến trúc ETL (ETL Architecture)
+* **Extract:** Các Cron job được lên lịch (thông qua Temporal) sẽ kích hoạt Connectors để kéo dữ liệu từ S3 buckets (AWS CUR) hoặc APIs (Azure/GCP).
+* **Transform:** Các luồng (Streams) Node.js xử lý file thô, ánh xạ các cột đặc thù của từng vendor về chuẩn FOCUS.
+* **Load:** Dữ liệu sau xử lý được lưu dưới định dạng file Parquet trên S3 và bulk-insert vào ClickHouse để phục vụ truy vấn OLAP siêu tốc.
 
-## 14. Allocation Engine Design
-The Allocation Engine operates strictly deterministically.
-1. **Tag-based:** Reads standard tags (e.g., `CostCenter`, `Owner`).
-2. **Account-based:** Maps Cloud Account IDs directly to Teams via CMDB sync.
-3. **Shared-cost:** Distributes costs of shared resources (e.g., K8s clusters, shared databases) based on telemetry usage metrics proportionally.
+## 14. Thiết kế Engine Phân bổ (Allocation Engine Design)
+Engine Phân bổ hoạt động hoàn toàn theo tính tất định (deterministically).
+1. **Dựa trên Tag (Tag-based):** Đọc các tag chuẩn hóa (vd: `CostCenter`, `Owner`).
+2. **Dựa trên Tài khoản (Account-based):** Ánh xạ trực tiếp Cloud Account ID với các Team thông qua đồng bộ từ CMDB.
+3. **Chi phí chung (Shared-cost):** Phân bổ chi phí của các tài nguyên dùng chung (ví dụ: K8s cluster, Database dùng chung) dựa trên tỷ lệ metric sử dụng (telemetry) thực tế.
 
-## 15. Data Quality Framework
-Runs post-ETL to ensure Principle 1 (Data Correctness):
-* **Freshness:** Asserts all expected daily billing files have arrived.
-* **Completeness:** Asserts row counts match expected provider checksums.
-* **Consistency:** Asserts `Allocated_Cost` sum equals `Raw_Cost` sum (Zero-sum game).
+## 15. Framework Chất lượng Dữ liệu (Data Quality Framework)
+Chạy ngay sau ETL để đảm bảo Nguyên tắc 1 (Tính chính xác của dữ liệu):
+* **Tính Mới (Freshness):** Đảm bảo tất cả các file billing hàng ngày mong đợi đều đã được tải về.
+* **Tính Đầy đủ (Completeness):** Đảm bảo tổng số lượng row khớp với checksum của provider.
+* **Tính Nhất quán (Consistency):** Đảm bảo tổng `Allocated_Cost` bằng đúng với tổng `Raw_Cost` (Bài toán Zero-sum game).
 
-## 16. Governance Framework
-* **Budgets:** Hierarchical budgets (Org -> Department -> Team).
-* **Alerting:** Real-time threshold alerts (Kafka-driven).
-* **RBAC:** Strict row-level security ensuring teams only view their respective data slices.
+## 16. Framework Quản trị (Governance Framework)
+* **Ngân sách (Budgets):** Ngân sách phân cấp (Công ty -> Khối -> Team).
+* **Cảnh báo (Alerting):** Cảnh báo ngưỡng theo thời gian thực (được điều phối qua Kafka).
+* **RBAC:** Bảo mật nghiêm ngặt cấp độ dòng (Row-level security), đảm bảo team nào chỉ được xem dữ liệu cost của team đó.
 
-## 17. AI Intelligence Architecture
-The AI layer accesses data *only* through secure read-only APIs returning aggregated ClickHouse data.
-* **Boundaries:** AI cannot execute SQL directly (to prevent prompt injection exposing other teams' costs). It uses predefined API tools.
-* **Hallucination Prevention:** Context window is heavily constrained by injecting factual, aggregated JSON summaries. Temperature is set to 0.0 for analytical tasks.
+## 17. Kiến trúc AI Intelligence (AI Intelligence Architecture)
+Lớp AI *chỉ* truy cập dữ liệu thông qua các API Read-only bảo mật để lấy dữ liệu đã được tổng hợp từ ClickHouse.
+* **Ranh giới (Boundaries):** AI không được phép thực thi SQL trực tiếp (để ngăn chặn tấn công Prompt Injection làm lộ chi phí của team khác). Nó bắt buộc phải dùng các API Tools đã được định nghĩa sẵn.
+* **Ngăn chặn Ảo giác (Hallucination Prevention):** Context window bị giới hạn chặt chẽ, chỉ cho phép tiêm (inject) các file JSON tóm tắt số liệu thực tế đã tổng hợp. Nhiệt độ (Temperature) được set ở mức 0.0 đối với các tác vụ phân tích.
 
-## 18. Agent Architecture
+## 18. Kiến trúc Agent (Agent Architecture)
 
 ```mermaid
 stateDiagram-v2
     [*] --> Monitor
     Monitor --> Anomaly_Detected : Z-Score > Threshold
-    Anomaly_Detected --> Root_Cause_Agent : Trigger Investigation
-    Root_Cause_Agent --> Generate_Hypothesis : Query Logs & Metrics
-    Generate_Hypothesis --> Auto_Remediation_Agent : Pass Context
+    Anomaly_Detected --> Root_Cause_Agent : Kích hoạt điều tra
+    Root_Cause_Agent --> Generate_Hypothesis : Truy vấn Logs & Metrics
+    Generate_Hypothesis --> Auto_Remediation_Agent : Truyền Context
     Auto_Remediation_Agent --> Evaluate_Confidence
-    Evaluate_Confidence --> Execute_Action : Confidence > 95%
-    Evaluate_Confidence --> Human_in_the_Loop : Confidence < 95%
-    Human_in_the_Loop --> Execute_Action : Approved
-    Human_in_the_Loop --> [*] : Rejected
-    Execute_Action --> [*] : Log Audit Trail
+    Evaluate_Confidence --> Execute_Action : Độ tin cậy > 95%
+    Evaluate_Confidence --> Human_in_the_Loop : Độ tin cậy < 95%
+    Human_in_the_Loop --> Execute_Action : Được Phê duyệt
+    Human_in_the_Loop --> [*] : Bị Từ chối
+    Execute_Action --> [*] : Ghi Nhật ký Kiểm toán
 ```
 
-## 19. Security Architecture
-* **Data Encryption:** AES-256 for data at rest (S3, ClickHouse). TLS 1.3 in transit.
-* **Secret Management:** HashiCorp Vault or AWS Secrets Manager for Cloud API keys.
-* **AI Privacy:** Zero data-retention policies negotiated with LLM providers. PII/Financial numbers masked before hitting third-party LLM APIs where possible.
+## 19. Kiến trúc Bảo mật (Security Architecture)
+* **Mã hóa Dữ liệu (Encryption):** AES-256 cho dữ liệu nằm yên (S3, ClickHouse). TLS 1.3 cho dữ liệu truyền tải.
+* **Quản lý Secret:** HashiCorp Vault hoặc AWS Secrets Manager cho Cloud API keys.
+* **Bảo mật AI Privacy:** Đàm phán chính sách "Zero data-retention" (Không lưu trữ dữ liệu) với các nhà cung cấp LLM. Dữ liệu PII/Tài chính nhảy cảm phải được che mờ (masked) trước khi đẩy qua API của LLM bên thứ 3.
 
-## 20. Scalability Architecture
-* **Compute:** NestJS microservices deployed on Kubernetes, auto-scaling based on CPU/Memory metrics.
-* **Storage:** Decoupled storage and compute. S3 handles infinite raw data storage; ClickHouse scales horizontally using sharding for high-speed analytical reads.
+## 20. Kiến trúc Khả năng mở rộng (Scalability Architecture)
+* **Compute:** Các microservices NestJS được deploy trên Kubernetes, auto-scaling dựa theo metric CPU/Memory.
+* **Storage:** Tách biệt Storage và Compute (Decoupled). S3 lưu trữ dữ liệu raw vô hạn; ClickHouse scale ngang bằng cơ chế sharding để phục vụ các truy vấn Analytics tốc độ cao.
 
-## 21. Observability Architecture
-* **Metrics & Tracing:** OpenTelemetry instrumented across all NestJS services.
+## 21. Kiến trúc Khả năng Quan sát (Observability Architecture)
+* **Metrics & Tracing:** Được gắn OpenTelemetry trên toàn bộ các service NestJS.
 * **Monitoring:** Datadog / Prometheus + Grafana.
-* **Agent Observability:** LangSmith / Traceloop used to monitor Agent reasoning steps, tool usage, and token consumption.
+* **Agent Observability:** Sử dụng LangSmith / Traceloop để giám sát các bước suy luận của Agent, cách nó dùng Tool, và lượng Token tiêu thụ.
 
-## 22. Deployment Architecture
-* **CI/CD:** GitHub Actions deploying Helm charts to Kubernetes.
-* **Infrastructure as Code:** Terraform used to provision S3, ClickHouse clusters, Kafka, and networking.
+## 22. Kiến trúc Triển khai (Deployment Architecture)
+* **CI/CD:** GitHub Actions để deploy Helm charts lên Kubernetes.
+* **Infrastructure as Code (IaC):** Sử dụng Terraform để cấp phát S3, cụm ClickHouse, Kafka và hạ tầng mạng.
 
 ---
 
-## 23. ADRs (Architecture Decision Records)
+## 23. Biên bản Quyết định Kiến trúc (ADRs - Architecture Decision Records)
 
 ### ADR 1: Database - PostgreSQL vs ClickHouse
-* **Decision:** **Hybrid Approach**. PostgreSQL for OLTP (metadata, allocation rules, user state). **ClickHouse** for OLAP (billing records, analytics).
-* **Reasoning:** FinOps requires querying millions of rows spanning months to aggregate costs. PostgreSQL struggles with OLAP aggregations at this scale. ClickHouse's columnar format delivers sub-second analytical queries.
-* **Trade-off:** Managing two database technologies increases operational overhead.
+* **Quyết định:** **Cách tiếp cận Lai (Hybrid Approach)**. PostgreSQL cho hệ thống OLTP (metadata, luật phân bổ, trạng thái user). **ClickHouse** cho hệ thống OLAP (dữ liệu billing, phân tích).
+* **Lập luận:** FinOps yêu cầu truy vấn hàng triệu dòng trải dài nhiều tháng để tổng hợp chi phí. PostgreSQL xử lý rất kém các truy vấn aggregation (OLAP) ở quy mô này. Cấu trúc lưu trữ dạng cột (columnar) của ClickHouse mang lại tốc độ truy vấn phân tích chỉ dưới 1 giây.
+* **Đánh đổi (Trade-off):** Việc vận hành 2 công nghệ database sẽ làm tăng gánh nặng vận hành.
 
 ### ADR 2: Data Lake & DWH - S3/Parquet + ClickHouse vs Snowflake
-* **Decision:** **S3 + Parquet + ClickHouse**.
-* **Reasoning:** Snowflake is powerful but charges per compute second. Running frequent micro-batch ingestions and continuous AI Agent queries on Snowflake would result in astronomical FinOps platform costs. ClickHouse provides better cost-to-performance ratio for this specific workload.
+* **Quyết định:** **S3 + Parquet + ClickHouse**.
+* **Lập luận:** Snowflake cực kỳ mạnh mẽ nhưng tính tiền dựa trên thời gian chạy Compute. Việc chạy các quy trình Ingestion micro-batch liên tục và cho phép AI Agent truy vấn không giới hạn trên Snowflake sẽ tạo ra một khoản chi phí khổng lồ cho chính nền tảng FinOps. ClickHouse mang lại tỷ lệ hiệu năng/chi phí (cost-to-performance) tốt hơn rất nhiều cho bài toán này.
 
 ### ADR 3: Messaging - Kafka vs SQS
-* **Decision:** **Kafka** for Data Streams, **SQS** for Task Queues.
-* **Reasoning:** Kafka is used for streaming raw billing data where replayability and high throughput are required. SQS is used for triggering isolated ETL jobs and Agent tasks where simple dead-letter queue (DLQ) mechanics suffice.
+* **Quyết định:** **Kafka** cho Data Streams, **SQS** cho Task Queues.
+* **Lập luận:** Kafka được sử dụng để stream dữ liệu billing raw vì nó hỗ trợ Replayability và High throughput. SQS được dùng để kích hoạt các ETL jobs và Agent tasks độc lập, nơi mà cơ chế Dead-letter queue (DLQ) đơn giản là quá đủ.
 
 ### ADR 4: Orchestration - Airflow vs Temporal
-* **Decision:** **Temporal**.
-* **Reasoning:** While Airflow is standard for data pipelines, our architecture relies heavily on Agentic workflows (Layer 4). Temporal provides superior state management, robust retry mechanisms, and native support for suspending workflows to await **Human-in-the-Loop (HITL)** approval before auto-remediation.
+* **Quyết định:** **Temporal**.
+* **Lập luận:** Mặc dù Airflow là tiêu chuẩn vàng cho Data Pipeline, nhưng kiến trúc của chúng ta phụ thuộc rất nặng vào Agentic workflows (Layer 4). Temporal cung cấp khả năng State Management vượt trội, cơ chế Retry mạnh mẽ, và hỗ trợ native cho việc tạm dừng Workflow để chờ con người duyệt **(Human-in-the-Loop - HITL)** trước khi Auto-remediation diễn ra.
 
 ---
 
-## 24. Risks & Mitigations
-| Risk | Impact | Mitigation |
+## 24. Rủi ro & Giảm thiểu (Risks & Mitigations)
+| Rủi ro (Risk) | Mức độ | Biện pháp giảm thiểu (Mitigation) |
 | :--- | :--- | :--- |
-| **LLM Hallucinating Allocation** | Critical | Enforce Principle 2. AI strictly isolated from calculation layer. |
-| **Agent Executing Destructive Action** | High | Mandatory HITL via Temporal for any action altering infrastructure state. |
-| **Cloud API Rate Limits** | Medium | Implement exponential backoff in ETL Connectors; use caching. |
-| **Runaway AI API Costs** | Medium | Implement token budgets per Agent; fallback to cheaper models (e.g., GPT-3.5/Claude Haiku) for basic triage. |
+| **LLM Ảo giác khi phân bổ** | Rất Nghiêm trọng | Ép buộc Nguyên tắc 2. Cô lập hoàn toàn AI khỏi lớp tính toán tài chính. |
+| **Agent chạy các lệnh phá hủy** | Nghiêm trọng | Bắt buộc phải có HITL qua Temporal đối với bất kỳ hành động nào thay đổi trạng thái Hạ tầng. |
+| **Cloud API Rate Limits** | Trung bình | Áp dụng cơ chế Exponential backoff trong các Connectors ETL; sử dụng Caching. |
+| **Bùng nổ chi phí API AI** | Trung bình | Đặt Budget (Token) giới hạn cho từng Agent; dùng model rẻ hơn (vd: GPT-3.5/Claude Haiku) cho bước phân tích sơ bộ (Triage). |
 
-## 25. Future Roadmap
-* **Phase 1:** Multi-cloud ingestion, Normalization (FOCUS), Rule-based Allocation.
-* **Phase 2:** BI Dashboards, Budgeting, Basic Alerting.
-* **Phase 3:** AI Intelligence Layer (NLQ, Summaries).
-* **Phase 4:** Agent Automation Layer (Root Cause Analysis, HITL Auto-remediation).
-* **Phase 5:** Deep SaaS Integrations (Datadog, Snowflake, MongoDB Atlas billing).
+## 25. Lộ trình Tương lai (Future Roadmap)
+* **Giai đoạn 1:** Thu thập dữ liệu Multi-cloud, Chuẩn hóa (FOCUS), Phân bổ theo tập quy tắc (Rule-based).
+* **Giai đoạn 2:** Xây dựng BI Dashboards, Ngân sách (Budgeting), Cảnh báo cơ bản.
+* **Giai đoạn 3:** Xây dựng Lớp AI Intelligence (Truy vấn NLQ, Tóm tắt).
+* **Giai đoạn 4:** Xây dựng Lớp Agent Automation (Phân tích nguyên nhân gốc rễ, HITL Auto-remediation).
+* **Giai đoạn 5:** Tích hợp chuyên sâu vào các ứng dụng SaaS (Datadog, Snowflake, MongoDB Atlas billing).
