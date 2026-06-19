@@ -180,13 +180,13 @@ Sơ đồ trên thể hiện luồng di chuyển của dữ liệu từ dạng t
 
 ```mermaid
 erDiagram
-    BILLING_RECORD ||--o{ ALLOCATED_COST : tạo_ra
-    ACCOUNT ||--o{ BILLING_RECORD : phát_sinh
-    TEAM ||--o{ ACCOUNT : sở_hữu
-    TEAM ||--o{ BUDGET : có
-    BUDGET ||--o{ ALERT : kích_hoạt
-    ALLOCATION_RULE ||--o{ ALLOCATED_COST : định_nghĩa
-    AGENT_ACTION ||--o{ ALERT : điều_tra
+    BILLING_RECORD ||--o{ ALLOCATED_COST : "tạo_ra"
+    ACCOUNT ||--o{ BILLING_RECORD : "phát_sinh"
+    TEAM ||--o{ ACCOUNT : "sở_hữu"
+    TEAM ||--o{ BUDGET : "có"
+    BUDGET ||--o{ ALERT : "kích_hoạt"
+    ALLOCATION_RULE ||--o{ ALLOCATED_COST : "định_nghĩa"
+    AGENT_ACTION ||--o{ ALERT : "điều_tra"
 ```
 
 ### Giải thích Mô hình Miền (Domain Model)

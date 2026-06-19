@@ -180,13 +180,13 @@ The diagram above illustrates the movement of data from its raw form to its fina
 
 ```mermaid
 erDiagram
-    BILLING_RECORD ||--o{ ALLOCATED_COST : generates
-    ACCOUNT ||--o{ BILLING_RECORD : incurs
-    TEAM ||--o{ ACCOUNT : owns
-    TEAM ||--o{ BUDGET : has
-    BUDGET ||--o{ ALERT : triggers
-    ALLOCATION_RULE ||--o{ ALLOCATED_COST : defines
-    AGENT_ACTION ||--o{ ALERT : investigates
+    BILLING_RECORD ||--o{ ALLOCATED_COST : "generates"
+    ACCOUNT ||--o{ BILLING_RECORD : "incurs"
+    TEAM ||--o{ ACCOUNT : "owns"
+    TEAM ||--o{ BUDGET : "has"
+    BUDGET ||--o{ ALERT : "triggers"
+    ALLOCATION_RULE ||--o{ ALLOCATED_COST : "defines"
+    AGENT_ACTION ||--o{ ALERT : "investigates"
 ```
 
 ### Domain Model Explanation
