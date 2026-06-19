@@ -233,13 +233,13 @@ The AI layer accesses data *only* through secure read-only APIs returning aggreg
 ```mermaid
 stateDiagram-v2
     [*] --> Monitor
-    Monitor --> Anomaly_Detected : Z-Score > Threshold
+    Monitor --> Anomaly_Detected : Z-Score over Threshold
     Anomaly_Detected --> Root_Cause_Agent : Trigger Investigation
-    Root_Cause_Agent --> Generate_Hypothesis : Query Logs & Metrics
+    Root_Cause_Agent --> Generate_Hypothesis : Query Logs and Metrics
     Generate_Hypothesis --> Auto_Remediation_Agent : Pass Context
     Auto_Remediation_Agent --> Evaluate_Confidence
-    Evaluate_Confidence --> Execute_Action : Confidence > 95%
-    Evaluate_Confidence --> Human_in_the_Loop : Confidence < 95%
+    Evaluate_Confidence --> Execute_Action : Confidence over 95%
+    Evaluate_Confidence --> Human_in_the_Loop : Confidence under 95%
     Human_in_the_Loop --> Execute_Action : Approved
     Human_in_the_Loop --> [*] : Rejected
     Execute_Action --> [*] : Log Audit Trail

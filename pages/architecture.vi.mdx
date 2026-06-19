@@ -233,13 +233,13 @@ Lớp AI *chỉ* truy cập dữ liệu thông qua các API Read-only bảo mậ
 ```mermaid
 stateDiagram-v2
     [*] --> Monitor
-    Monitor --> Anomaly_Detected : Z-Score > Threshold
+    Monitor --> Anomaly_Detected : Z-Score over Threshold
     Anomaly_Detected --> Root_Cause_Agent : Kích hoạt điều tra
-    Root_Cause_Agent --> Generate_Hypothesis : Truy vấn Logs & Metrics
+    Root_Cause_Agent --> Generate_Hypothesis : Truy vấn Logs and Metrics
     Generate_Hypothesis --> Auto_Remediation_Agent : Truyền Context
     Auto_Remediation_Agent --> Evaluate_Confidence
-    Evaluate_Confidence --> Execute_Action : Độ tin cậy > 95%
-    Evaluate_Confidence --> Human_in_the_Loop : Độ tin cậy < 95%
+    Evaluate_Confidence --> Execute_Action : Độ tin cậy trên 95%
+    Evaluate_Confidence --> Human_in_the_Loop : Độ tin cậy dưới 95%
     Human_in_the_Loop --> Execute_Action : Được Phê duyệt
     Human_in_the_Loop --> [*] : Bị Từ chối
     Execute_Action --> [*] : Ghi Nhật ký Kiểm toán
