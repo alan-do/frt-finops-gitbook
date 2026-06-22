@@ -106,11 +106,11 @@ graph TD
     end
 
     subgraph Layer2 ["Layer 2: Khối FinOps Core Platform"]
-        ETL[ETL & Normalization Engine]
-        DQ[Data Quality Framework]
+        ETL["ETL & Normalization Engine"]
+        DQ["Data Quality Framework"]
         DB[(Data Lake / DWH)]
-        ALLOC[Allocation Engine]
-        ANALYTICS[Cost Analytics Engine]
+        ALLOC["Allocation Engine"]
+        ANALYTICS["Cost Analytics Engine"]
         
         ETL --> DQ
         DQ --> DB
@@ -120,17 +120,17 @@ graph TD
     end
 
     subgraph Layer3 ["Layer 3: Khối Trí tuệ AI (Intelligence Layer)"]
-        AIGW[AI Gateway]
-        NLQ[NL Query Service]
-        REC[Recommendation Engine]
-        SUM[Summary Service]
+        AIGW["AI Gateway"]
+        NLQ["NL Query Service"]
+        REC["Recommendation Engine"]
+        SUM["Summary Service"]
     end
 
     subgraph Layer4 ["Layer 4: Khối Tự động hóa Agent"]
-        ORCH[Agent Orchestrator]
-        DQA[Data Quality Agent]
-        RCA[Root Cause Agent]
-        ARA[Auto-Remediation Agent]
+        ORCH["Agent Orchestrator"]
+        DQA["Data Quality Agent"]
+        RCA["Root Cause Agent"]
+        ARA["Auto-Remediation Agent"]
     end
 
     Layer1 -->|Raw Data| ETL
@@ -160,13 +160,13 @@ Hệ thống được thiết kế theo kiến trúc Microservices (hoặc Modul
 
 ```mermaid
 graph LR
-    Raw[Raw Billing CSV/JSON] -->|Ingest| S3[S3 Raw Zone]
-    S3 -->|Parse & Clean| Parquet[S3 Clean Zone (Parquet)]
+    Raw["Raw Billing CSV/JSON"] -->|Ingest| S3["S3 Raw Zone"]
+    S3 -->|Parse & Clean| Parquet["S3 Clean Zone (Parquet)"]
     Parquet -->|Load| CH[(ClickHouse DWH)]
-    CH -->|Rule Engine| Alloc[Bảng Chi phí đã Phân bổ]
-    Alloc -->|Serve| API[NestJS API]
-    API -->|Visualize| UI[Next.js Dashboard]
-    API -->|Context| AI[AI Intelligence]
+    CH -->|Rule Engine| Alloc["Bảng Chi phí đã Phân bổ"]
+    Alloc -->|Serve| API["NestJS API"]
+    API -->|Visualize| UI["Next.js Dashboard"]
+    API -->|Context| AI["AI Intelligence"]
 ```
 
 ### Phân tích Luồng Dữ liệu

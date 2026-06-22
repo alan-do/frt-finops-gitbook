@@ -21,19 +21,19 @@ graph TD
     classDef core fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#9a3412
 
     subgraph External_Sources ["☁️ Data Generators (Multi-Cloud / SaaS)"]
-        AWS[AWS Cost Explorer]:::cloud
-        Azure[Azure Billing API]:::cloud
-        OAI[OpenAI Usage API]:::cloud
+        AWS["AWS Cost Explorer"]:::cloud
+        Azure["Azure Billing API"]:::cloud
+        OAI["OpenAI Usage API"]:::cloud
     end
 
     subgraph Multi_Agent_System ["🤖 Autonomous FinOps Multi-Agent System"]
-        Orchestrator[🧠 Orchestrator / LangChain]:::core
+        Orchestrator["🧠 Orchestrator / LangChain"]:::core
         
-        A1[🕵️ Data Ingestion Agent]:::agent
-        A2[🚨 Anomaly Detection Agent]:::agent
-        A3[💡 Optimization Analyst Agent]:::agent
-        A4[🗣️ Reporting Agent]:::agent
-
+        A1["🕵️ Data Ingestion Agent"]:::agent
+        A2["🚨 Anomaly Detection Agent"]:::agent
+        A3["💡 Optimization Analyst Agent"]:::agent
+        A4["🗣️ Reporting Agent"]:::agent
+        
         Orchestrator -->|Delegate| A1
         Orchestrator -->|Coordinate| A2
         Orchestrator -->|Assign Task| A3
@@ -45,8 +45,8 @@ graph TD
     end
 
     subgraph Action_Layer ["⚡ Action & Notification"]
-        Channel[Internal Channel / Email]:::output
-        Remediation[Auto-Remediation]:::output
+        Channel["Internal Channel / Email"]:::output
+        Remediation["Auto-Remediation"]:::output
     end
 
     AWS -->|Raw Billing| A1
