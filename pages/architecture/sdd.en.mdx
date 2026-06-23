@@ -1,0 +1,452 @@
+import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+
+# Software Design Document (SDD)
+
+<Callout type="info" emoji="📐">
+  This document describes the detailed software design for the **FRT FinOps Platform**, covering component interactions, sequence flows for all major use cases, and API contracts. It serves as the blueprint for the **Execution (Burn)** phase following CTO Review.
+</Callout>
+
+---
+
+## 1. Document Scope
+
+This SDD covers the detailed design of the following functional areas:
+
+| # | Use Case | Layer |
+| :--- | :--- | :--- |
+| UC-01 | Daily Billing Data Ingestion | Data Collection → Core Platform |
+| UC-02 | Cost Allocation via Rules Engine | Core Platform |
+| UC-03 | Budget Threshold Alert | Core Platform → Notification |
+| UC-04 | Anomaly Detection & Agent Investigation | Agent Automation Layer |
+| UC-05 | Natural Language Query (NLQ) | AI Intelligence Layer |
+| UC-06 | GenAI Automated Monthly Report | AI Intelligence Layer → Notification |
+| UC-07 | Human-in-the-Loop (HITL) Approval | Agent Automation Layer |
+
+---
+
+## 2. Component Interaction Overview
+
+Before diving into individual sequence flows, the diagram below shows how the major internal services communicate:
+
+```mermaid
+graph LR
+    subgraph Ingestion
+        CONN["Cloud Connectors\n(AWS/Azure/GCP/OAI)"]
+        ETL["ETL & Normalization\nService"]
+        DQ["Data Quality\nFramework"]
+    end
+
+    subgraph Core
+        ALLOC["Allocation &\nRules Engine"]
+        ANALYTICS["Analytics &\nQuery API (OLAP)"]
+        GOV["Governance &\nAlerting Service"]
+    end
+
+    subgraph Storage
+        S3_RAW[("S3 Raw Zone")]
+        S3_CLEAN[("S3 Clean Zone\nParquet / FOCUS")]
+        CH[("ClickHouse DWH\nFOCUS Schema")]
+        PG[("PostgreSQL\nOLTP Metadata")]
+    end
+
+    subgraph AI
+        AIGW["AI Gateway\n(LiteLLM)"]
+        NLQ["NL Query Service"]
+        SUM["Summary Service"]
+    end
+
+    subgraph Agents
+        ORCH["Agent Orchestrator\n(Temporal)"]
+        DQA["Data Quality Agent"]
+        RCA["Root Cause Agent"]
+        ARA["Auto-Remediation Agent"]
+    end
+
+    subgraph Notification
+        KAFKA["Kafka / SQS\nEvent Bus"]
+        SLACK["Slack / MS Teams"]
+        ITSM["Jira / ServiceNow"]
+    end
+
+    CONN -->|Raw CSV/JSON| S3_RAW
+    S3_RAW --> ETL --> DQ --> S3_CLEAN
+    S3_CLEAN -->|Bulk Load| CH
+    CH --> ALLOC --> CH
+    CH --> ANALYTICS
+    ANALYTICS --> AI
+    AIGW --> NLQ & SUM
+    CH --> GOV --> KAFKA
+    KAFKA --> ORCH
+    ORCH --> DQA & RCA & ARA
+    ARA -->|HITL| SLACK
+    GOV --> SLACK
+    ALLOC <--> PG
+```
+
+---
+
+## 3. Sequence Diagrams
+
+<Tabs items={['UC-01 Ingestion', 'UC-02 Allocation', 'UC-03 Budget Alert', 'UC-04 Anomaly + Agent', 'UC-05 NLQ', 'UC-06 GenAI Report', 'UC-07 HITL']}>
+
+<Tab>
+### UC-01: Daily Billing Data Ingestion
+
+**Trigger:** Temporal cron job fires daily at 02:00 UTC.  
+**Actors:** Temporal Scheduler, Cloud Connector, ETL Service, Data Quality Framework, S3, ClickHouse.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Temporal as ⏰ Temporal Scheduler
+    participant Conn as ☁️ Cloud Connector
+    participant Provider as 🏢 Cloud Provider API<br/>(AWS/Azure/GCP/OAI)
+    participant S3Raw as 🪣 S3 Raw Zone
+    participant ETL as ⚙️ ETL & Normalization
+    participant DQ as ✅ Data Quality Framework
+    participant S3Clean as 🪣 S3 Clean Zone (Parquet)
+    participant CH as 🗄️ ClickHouse DWH
+
+    Temporal->>Conn: Trigger daily ingestion workflow
+    Conn->>Provider: Pull Billing Report (paginated, retry on 429)
+    Provider-->>Conn: Raw CSV / JSON billing data
+    Conn->>S3Raw: Store raw file (immutable, append-only)
+    Conn-->>Temporal: Ack: raw file stored
+
+    Temporal->>ETL: Trigger normalization job (S3 path)
+    ETL->>S3Raw: Read raw file
+    ETL->>ETL: Map vendor columns → FOCUS 1.4 schema<br/>(BilledCost, ChargeCategory, ProviderName, SubAccountId…)
+    ETL->>ETL: Strip PII / mask sensitive fields
+    ETL->>S3Clean: Write Parquet file (FOCUS-compliant)
+
+    ETL->>DQ: Run Data Quality checks
+    DQ->>DQ: Check Freshness (expected files arrived?)
+    DQ->>DQ: Check Completeness (row count vs. checksum)
+    DQ->>DQ: Check Consistency (sum BilledCost == raw total)
+
+    alt DQ Passed
+        DQ-->>ETL: ✅ All checks passed
+        ETL->>CH: Bulk INSERT Parquet → FOCUS_Normalized table
+        CH-->>ETL: Insert confirmed
+        ETL-->>Temporal: Workflow complete ✅
+    else DQ Failed
+        DQ-->>ETL: ❌ Check failed (detail: which check)
+        ETL->>Temporal: Emit DQ_FAILURE event
+        Temporal->>ORCH: Trigger Data Quality Agent
+        Note over ORCH: See UC-04 for agent flow
+    end
+```
+</Tab>
+
+<Tab>
+### UC-02: Cost Allocation via Rules Engine
+
+**Trigger:** Fires after UC-01 completes successfully (Temporal chained workflow).  
+**Actors:** Temporal, Allocation Engine, PostgreSQL (rules store), ClickHouse.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Temporal as ⏰ Temporal
+    participant ALLOC as ⚙️ Allocation & Rules Engine
+    participant PG as 🗃️ PostgreSQL<br/>(Rules & CMDB)
+    participant CH as 🗄️ ClickHouse DWH
+
+    Temporal->>ALLOC: Trigger allocation for billing_period=today
+    ALLOC->>CH: SELECT * FROM FOCUS_Normalized WHERE BillingPeriod = today AND AllocatedTeam IS NULL
+    CH-->>ALLOC: Unallocated billing records
+
+    ALLOC->>PG: Load active AllocationRules (ordered by priority)
+    PG-->>ALLOC: Rule set [{tag-based}, {account-based}, {shared-cost}]
+
+    loop For each unallocated record
+        ALLOC->>ALLOC: Rule 1 — Tag-based: match Tags[CostCenter / Owner]
+        ALLOC->>ALLOC: Rule 2 — Account-based: match SubAccountId → TeamID via CMDB
+        ALLOC->>ALLOC: Rule 3 — Shared-cost: distribute proportionally by usage metrics
+        ALLOC->>ALLOC: Stamp record with TeamID, BusinessUnit, Environment
+    end
+
+    ALLOC->>CH: INSERT INTO Allocated_Cost (enriched records with TeamID)
+    ALLOC->>CH: Verify SUM(Allocated_Cost) == SUM(FOCUS_Normalized.BilledCost)
+
+    alt Zero-sum check passed
+        ALLOC->>PG: Write AllocationRun audit log (timestamp, rule_version, record_count)
+        ALLOC-->>Temporal: Allocation complete ✅
+    else Zero-sum mismatch
+        ALLOC->>Temporal: Emit ALLOCATION_MISMATCH alert
+        Note over Temporal: Page FinOps team via Slack
+    end
+```
+</Tab>
+
+<Tab>
+### UC-03: Budget Threshold Alert
+
+**Trigger:** Governance Service polls ClickHouse every 1 hour.  
+**Actors:** Governance Service, ClickHouse, Kafka, Slack/Email.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant GOV as 🛡️ Governance & Alerting Service
+    participant CH as 🗄️ ClickHouse DWH
+    participant PG as 🗃️ PostgreSQL<br/>(Budget definitions)
+    participant KAFKA as 📨 Kafka
+    participant NOTIF as 🔔 Notification Service
+    participant SLACK as 💬 Slack / Email
+
+    loop Every 1 hour
+        GOV->>CH: Query SUM(BilledCost) GROUP BY TeamID, BillingPeriod
+        CH-->>GOV: Actual costs per team
+
+        GOV->>PG: Load Budget limits per team
+        PG-->>GOV: [{TeamID, monthly_budget, alert_thresholds: [80,90,100]}]
+
+        GOV->>GOV: Compare actual_cost / monthly_budget per team
+
+        alt Threshold crossed (80% / 90% / 100%)
+            GOV->>KAFKA: Publish BUDGET_ALERT event<br/>{teamId, threshold, actual, budget, timestamp}
+            KAFKA->>NOTIF: Consume BUDGET_ALERT
+            NOTIF->>PG: Check: was this threshold already alerted today?
+            alt Not yet alerted
+                NOTIF->>SLACK: Send alert message to team channel + FinOps channel
+                NOTIF->>PG: Mark threshold as alerted (idempotency guard)
+            else Already alerted
+                NOTIF-->>NOTIF: Skip (dedup)
+            end
+        else Under threshold
+            GOV-->>GOV: No action
+        end
+    end
+```
+</Tab>
+
+<Tab>
+### UC-04: Anomaly Detection & Agent Investigation
+
+**Trigger:** Governance Service detects Z-Score > threshold on BilledCost time series.  
+**Actors:** Governance Service, Kafka, Agent Orchestrator (Temporal), Root Cause Agent, LLM (via AI Gateway), Reporting Agent, Slack.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant GOV as 🛡️ Governance Service
+    participant KAFKA as 📨 Kafka
+    participant ORCH as 🧠 Agent Orchestrator<br/>(Temporal)
+    participant RCA as 🔍 Root Cause Agent
+    participant CH as 🗄️ ClickHouse DWH
+    participant AIGW as 🤖 AI Gateway<br/>(LiteLLM)
+    participant LLM as ✨ LLM<br/>(Claude / GPT-4)
+    participant ARA as 🔧 Auto-Remediation Agent
+    participant SLACK as 💬 Slack / ITSM
+
+    GOV->>GOV: Z-Score(BilledCost[TeamX]) > 3.0
+    GOV->>KAFKA: Publish ANOMALY_DETECTED {teamId, spike_amount, baseline, timestamp}
+
+    KAFKA->>ORCH: Consume ANOMALY_DETECTED
+    ORCH->>ORCH: Start Investigation Workflow (Temporal)
+
+    ORCH->>RCA: Trigger Root Cause Analysis
+    RCA->>CH: Query FOCUS data — TeamX last 7d by ServiceCategory, ResourceName
+    CH-->>RCA: Drill-down cost breakdown
+
+    RCA->>RCA: Statistical analysis (compare to baseline)
+    RCA->>RCA: Identify top cost driver (e.g. ServiceCategory=AI API, ResourceName=gpt-4o)
+
+    RCA->>AIGW: Send context payload {cost_data_json, anomaly_detail}
+    AIGW->>LLM: Forward prompt (temperature=0, factual JSON context injected)
+    LLM-->>AIGW: Root cause hypothesis + suggested actions
+    AIGW-->>RCA: Structured response
+
+    RCA->>ORCH: Return {root_cause, confidence_score, suggested_remediation}
+
+    alt confidence_score >= 0.95
+        ORCH->>ARA: Trigger auto-remediation (e.g. rate-limit SubAccount)
+        Note over ARA: See UC-07 HITL flow
+    else confidence_score < 0.95
+        ORCH->>SLACK: Send HITL approval request to FinOps channel
+        Note over SLACK: See UC-07 HITL flow
+    end
+
+    ORCH->>SLACK: Post investigation report<br/>"🚨 TeamX exceeded cost by 300%.\nCause: AI API (gpt-4o) called in loop.\nAction: [Approve remediation]"
+```
+</Tab>
+
+<Tab>
+### UC-05: Natural Language Query (NLQ)
+
+**Trigger:** User submits a question via the Dashboard UI.  
+**Actors:** User (Engineer / Finance), Next.js UI, NestJS API, NLQ Service, AI Gateway, LLM, ClickHouse.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as 👤 User (CTO / PO)
+    participant UI as 🖥️ Next.js Dashboard
+    participant API as 🔌 NestJS API
+    participant RBAC as 🔐 RBAC Middleware
+    participant NLQ as 💬 NLQ Service
+    participant AIGW as 🤖 AI Gateway
+    participant LLM as ✨ LLM (Claude / GPT-4)
+    participant CH as 🗄️ ClickHouse DWH
+
+    User->>UI: Type question: "Why did Team A's costs spike last week?"
+    UI->>API: POST /api/nlq {question, userId}
+
+    API->>RBAC: Validate JWT, resolve TeamScope for userId
+    RBAC-->>API: Allowed teams: [TeamA] (row-level filter)
+
+    API->>NLQ: Forward {question, teamScope: [TeamA]}
+
+    NLQ->>AIGW: Send prompt: "Convert question to FOCUS SQL. Only query TeamID IN [TeamA].\nSchema: {FOCUS column definitions}"
+    AIGW->>LLM: Forward (temperature=0)
+    LLM-->>AIGW: Generated SQL (scoped to TeamA)
+    AIGW-->>NLQ: SQL query
+
+    NLQ->>NLQ: Validate SQL (no DDL, no cross-team access, read-only)
+    NLQ->>CH: Execute validated SQL against FOCUS_Normalized / Allocated_Cost
+    CH-->>NLQ: Aggregated result set (JSON)
+
+    NLQ->>AIGW: Send {result_json, original_question} → "Explain this data in plain language"
+    AIGW->>LLM: Forward
+    LLM-->>AIGW: Natural language explanation
+    AIGW-->>NLQ: Answer text
+
+    NLQ-->>API: {sql, result_table, explanation}
+    API-->>UI: Response
+    UI-->>User: Display table + AI explanation
+```
+</Tab>
+
+<Tab>
+### UC-06: GenAI Automated Monthly Report
+
+**Trigger:** Temporal cron job fires on the 1st of each month at 08:00 ICT.  
+**Actors:** Temporal, Summary Service, ClickHouse, AI Gateway, LLM, Notification Service, Slack/Email.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Temporal as ⏰ Temporal Scheduler
+    participant SUM as 📊 Summary Service
+    participant CH as 🗄️ ClickHouse DWH
+    participant AIGW as 🤖 AI Gateway
+    participant LLM as ✨ LLM (Claude / GPT-4)
+    participant NOTIF as 🔔 Notification Service
+    participant SLACK as 💬 Slack / Email
+
+    Temporal->>SUM: Trigger monthly_report for period=last_month
+
+    SUM->>CH: Query 1 — Total cost by Team, BillingPeriod
+    SUM->>CH: Query 2 — Top 5 cost drivers by ServiceCategory
+    SUM->>CH: Query 3 — Budget vs Actual per Team
+    SUM->>CH: Query 4 — MoM (Month-over-Month) cost change %
+    CH-->>SUM: Aggregated JSON summaries (all 4 queries)
+
+    SUM->>SUM: Compose structured context payload<br/>(cap token budget, mask raw numbers if needed)
+
+    SUM->>AIGW: Send {context_json, report_template_prompt}
+    Note over AIGW: Prompt instructs LLM to write<br/>executive summary, highlight anomalies,<br/>list top 3 optimization recommendations
+    AIGW->>LLM: Forward (temperature=0.2)
+    LLM-->>AIGW: Drafted monthly FinOps report (Markdown)
+    AIGW-->>SUM: Report content
+
+    SUM->>SUM: Append raw data tables to report
+    SUM->>NOTIF: Send report payload {markdown, recipient_list}
+
+    NOTIF->>SLACK: Post to #finops-report channel (Engineering team)
+    NOTIF->>SLACK: Email to BOD / Ban Cong nghe (PDF render)
+    SLACK-->>NOTIF: Delivery confirmed
+    NOTIF-->>SUM: Done ✅
+```
+</Tab>
+
+<Tab>
+### UC-07: Human-in-the-Loop (HITL) Approval
+
+**Trigger:** Agent Orchestrator requires human approval before executing a remediation action.  
+**Actors:** Agent Orchestrator (Temporal), Slack, FinOps Lead (Human), Auto-Remediation Agent, Audit Log.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant ORCH as 🧠 Agent Orchestrator<br/>(Temporal — suspended workflow)
+    participant SLACK as 💬 Slack
+    participant Human as 👤 FinOps Lead (DaiDX)
+    participant ARA as 🔧 Auto-Remediation Agent
+    participant CH as 🗄️ ClickHouse / Audit Log
+    participant ITSM as 🎫 Jira / ServiceNow
+
+    ORCH->>SLACK: Post HITL approval request
+    Note over SLACK: "⚠️ Agent proposes: Rate-limit TeamX SubAccount<br/>Confidence: 87% | Est. saving: $200/day<br/>[✅ Approve] [❌ Reject] [🔍 Investigate more]"
+
+    Note over ORCH: Temporal workflow SUSPENDED,<br/>waiting for signal (timeout: 4 hours)
+
+    Human->>SLACK: Click [✅ Approve]
+    SLACK->>ORCH: Send approval signal {action: approved, approver: DaiDX, timestamp}
+
+    ORCH->>ORCH: Resume suspended workflow
+    ORCH->>ARA: Execute approved remediation action
+
+    ARA->>ARA: Call Cloud Provider API<br/>(e.g. set spending limit / alert on SubAccount)
+    ARA-->>ORCH: Action result {success: true, detail}
+
+    ORCH->>CH: Write immutable Audit Log entry<br/>{action, approver, confidence, before_state, after_state, timestamp}
+    ORCH->>ITSM: Create ticket "Auto-remediation applied — TeamX rate-limited"
+    ORCH->>SLACK: Post result "✅ Remediation applied. TeamX account rate-limited. Ticket: JIRA-123"
+
+    alt Human clicks [❌ Reject]
+        SLACK->>ORCH: Send rejection signal {action: rejected, reason}
+        ORCH->>CH: Write Audit Log (rejected action)
+        ORCH->>SLACK: Post "❌ Remediation rejected by DaiDX. Manual investigation required."
+        ORCH-->>ORCH: Workflow ends
+    end
+```
+</Tab>
+
+</Tabs>
+
+---
+
+## 4. API Contracts (Key Endpoints)
+
+### 4.1 Analytics API
+
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/costs` | Get allocated costs with filters (team, period, env) | JWT + RBAC |
+| `GET` | `/api/costs/summary` | Aggregated cost summary by team/service | JWT + RBAC |
+| `GET` | `/api/budgets` | Get budget limits and current utilization | JWT + RBAC |
+| `POST` | `/api/nlq` | Submit natural language cost question | JWT + RBAC |
+| `GET` | `/api/reports/monthly` | Retrieve latest monthly FinOps report | JWT + RBAC |
+
+### 4.2 Admin / FinOps Lead API
+
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/allocation-rules` | Create/update allocation rule | JWT + Admin |
+| `GET` | `/api/allocation-rules` | List all active rules with priority order | JWT + Admin |
+| `POST` | `/api/budgets` | Set/update budget for a team | JWT + Admin |
+| `GET` | `/api/agents/actions` | List pending HITL approval requests | JWT + Admin |
+| `POST` | `/api/agents/actions/:id/approve` | Approve a HITL action | JWT + Admin |
+| `POST` | `/api/agents/actions/:id/reject` | Reject a HITL action | JWT + Admin |
+
+### 4.3 Webhook / Notification
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/webhooks/slack/actions` | Receive Slack interactive button callbacks (HITL) |
+| `POST` | `/webhooks/ingestion/trigger` | Manually trigger ingestion for a provider |
+
+---
+
+## 5. Error Handling Strategy
+
+| Scenario | Strategy |
+| :--- | :--- |
+| Cloud Provider API rate limit (429) | Exponential backoff with jitter, max 5 retries |
+| DQ check failure | Halt pipeline, emit alert, trigger DQ Agent |
+| Allocation zero-sum mismatch | Block Allocated_Cost write, page FinOps Lead |
+| LLM hallucination / low confidence | Fall back to pre-templated report, flag for manual review |
+| Temporal workflow timeout (HITL > 4h) | Auto-reject action, notify Slack, write audit log |
+| Agent action execution failure | Rollback, write audit log, create ITSM ticket |

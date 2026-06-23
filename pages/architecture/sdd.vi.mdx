@@ -1,0 +1,435 @@
+import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+
+# Tài liệu Thiết kế Phần mềm (SDD)
+
+<Callout type="info" emoji="📐">
+  Tài liệu này mô tả thiết kế phần mềm chi tiết cho **FRT FinOps Platform**, bao gồm tương tác giữa các component, luồng tuần tự cho tất cả các use case chính, và API contracts. Đây là bản thiết kế cho giai đoạn **Bọn em Burn (Execution)** sau CTO Review.
+</Callout>
+
+---
+
+## 1. Phạm vi tài liệu
+
+SDD này bao gồm thiết kế chi tiết cho các functional area sau:
+
+| # | Use Case | Layer |
+| :--- | :--- | :--- |
+| UC-01 | Ingestion dữ liệu Billing hàng ngày | Data Collection → Core Platform |
+| UC-02 | Phân bổ chi phí qua Rules Engine | Core Platform |
+| UC-03 | Cảnh báo ngưỡng ngân sách | Core Platform → Notification |
+| UC-04 | Phát hiện bất thường & Agent điều tra | Agent Automation Layer |
+| UC-05 | Truy vấn ngôn ngữ tự nhiên (NLQ) | AI Intelligence Layer |
+| UC-06 | GenAI tự động báo cáo tháng | AI Intelligence Layer → Notification |
+| UC-07 | Phê duyệt Human-in-the-Loop (HITL) | Agent Automation Layer |
+
+---
+
+## 2. Tổng quan tương tác Component
+
+```mermaid
+graph LR
+    subgraph Ingestion
+        CONN["Cloud Connectors\n(AWS/Azure/GCP/OAI)"]
+        ETL["ETL & Normalization\nService"]
+        DQ["Data Quality\nFramework"]
+    end
+
+    subgraph Core
+        ALLOC["Allocation &\nRules Engine"]
+        ANALYTICS["Analytics &\nQuery API (OLAP)"]
+        GOV["Governance &\nAlerting Service"]
+    end
+
+    subgraph Storage
+        S3_RAW[("S3 Raw Zone")]
+        S3_CLEAN[("S3 Clean Zone\nParquet / FOCUS")]
+        CH[("ClickHouse DWH\nFOCUS Schema")]
+        PG[("PostgreSQL\nOLTP Metadata")]
+    end
+
+    subgraph AI
+        AIGW["AI Gateway\n(LiteLLM)"]
+        NLQ["NL Query Service"]
+        SUM["Summary Service"]
+    end
+
+    subgraph Agents
+        ORCH["Agent Orchestrator\n(Temporal)"]
+        DQA["Data Quality Agent"]
+        RCA["Root Cause Agent"]
+        ARA["Auto-Remediation Agent"]
+    end
+
+    subgraph Notification
+        KAFKA["Kafka / SQS\nEvent Bus"]
+        SLACK["Slack / MS Teams"]
+        ITSM["Jira / ServiceNow"]
+    end
+
+    CONN -->|Raw CSV/JSON| S3_RAW
+    S3_RAW --> ETL --> DQ --> S3_CLEAN
+    S3_CLEAN -->|Bulk Load| CH
+    CH --> ALLOC --> CH
+    CH --> ANALYTICS
+    ANALYTICS --> AI
+    AIGW --> NLQ & SUM
+    CH --> GOV --> KAFKA
+    KAFKA --> ORCH
+    ORCH --> DQA & RCA & ARA
+    ARA -->|HITL| SLACK
+    GOV --> SLACK
+    ALLOC <--> PG
+```
+
+---
+
+## 3. Sequence Diagrams
+
+<Tabs items={['UC-01 Ingestion', 'UC-02 Phân bổ', 'UC-03 Budget Alert', 'UC-04 Anomaly + Agent', 'UC-05 NLQ', 'UC-06 GenAI Report', 'UC-07 HITL']}>
+
+<Tab>
+### UC-01: Ingestion dữ liệu Billing hàng ngày
+
+**Trigger:** Temporal cron job chạy mỗi ngày lúc 02:00 UTC.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Temporal as ⏰ Temporal Scheduler
+    participant Conn as ☁️ Cloud Connector
+    participant Provider as 🏢 Cloud Provider API<br/>(AWS/Azure/GCP/OAI)
+    participant S3Raw as 🪣 S3 Raw Zone
+    participant ETL as ⚙️ ETL & Normalization
+    participant DQ as ✅ Data Quality Framework
+    participant S3Clean as 🪣 S3 Clean Zone (Parquet)
+    participant CH as 🗄️ ClickHouse DWH
+
+    Temporal->>Conn: Kích hoạt ingestion workflow hàng ngày
+    Conn->>Provider: Kéo Billing Report (phân trang, retry khi 429)
+    Provider-->>Conn: Raw CSV / JSON billing data
+    Conn->>S3Raw: Lưu file thô (immutable, append-only)
+    Conn-->>Temporal: Ack: đã lưu file thô
+
+    Temporal->>ETL: Kích hoạt job chuẩn hóa (S3 path)
+    ETL->>S3Raw: Đọc file thô
+    ETL->>ETL: Map cột vendor → FOCUS 1.4 schema<br/>(BilledCost, ChargeCategory, ProviderName, SubAccountId…)
+    ETL->>ETL: Xóa PII / mask dữ liệu nhạy cảm
+    ETL->>S3Clean: Ghi file Parquet (tuân thủ FOCUS)
+
+    ETL->>DQ: Chạy kiểm tra Data Quality
+    DQ->>DQ: Kiểm tra Freshness (file mong đợi đã đến?)
+    DQ->>DQ: Kiểm tra Completeness (row count vs. checksum)
+    DQ->>DQ: Kiểm tra Consistency (tổng BilledCost == tổng raw)
+
+    alt DQ Pass
+        DQ-->>ETL: ✅ Tất cả checks passed
+        ETL->>CH: Bulk INSERT Parquet → bảng FOCUS_Normalized
+        CH-->>ETL: Insert xác nhận
+        ETL-->>Temporal: Workflow hoàn tất ✅
+    else DQ Fail
+        DQ-->>ETL: ❌ Check thất bại (chi tiết: check nào)
+        ETL->>Temporal: Emit sự kiện DQ_FAILURE
+        Temporal->>ORCH: Kích hoạt Data Quality Agent
+    end
+```
+</Tab>
+
+<Tab>
+### UC-02: Phân bổ chi phí qua Rules Engine
+
+**Trigger:** Chạy sau khi UC-01 hoàn tất thành công (Temporal chained workflow).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Temporal as ⏰ Temporal
+    participant ALLOC as ⚙️ Allocation & Rules Engine
+    participant PG as 🗃️ PostgreSQL<br/>(Rules & CMDB)
+    participant CH as 🗄️ ClickHouse DWH
+
+    Temporal->>ALLOC: Kích hoạt phân bổ cho billing_period=hôm nay
+    ALLOC->>CH: SELECT * FROM FOCUS_Normalized WHERE BillingPeriod = today AND AllocatedTeam IS NULL
+    CH-->>ALLOC: Các bản ghi chưa phân bổ
+
+    ALLOC->>PG: Tải AllocationRules đang active (sắp xếp theo priority)
+    PG-->>ALLOC: Rule set [{tag-based}, {account-based}, {shared-cost}]
+
+    loop Với mỗi bản ghi chưa phân bổ
+        ALLOC->>ALLOC: Rule 1 — Tag-based: khớp Tags[CostCenter / Owner]
+        ALLOC->>ALLOC: Rule 2 — Account-based: khớp SubAccountId → TeamID qua CMDB
+        ALLOC->>ALLOC: Rule 3 — Shared-cost: phân bổ tỷ lệ theo usage metrics
+        ALLOC->>ALLOC: Gán TeamID, BusinessUnit, Environment cho bản ghi
+    end
+
+    ALLOC->>CH: INSERT INTO Allocated_Cost (bản ghi đã được enriched với TeamID)
+    ALLOC->>CH: Kiểm tra SUM(Allocated_Cost) == SUM(FOCUS_Normalized.BilledCost)
+
+    alt Zero-sum check pass
+        ALLOC->>PG: Ghi audit log AllocationRun (timestamp, rule_version, record_count)
+        ALLOC-->>Temporal: Phân bổ hoàn tất ✅
+    else Zero-sum không khớp
+        ALLOC->>Temporal: Emit cảnh báo ALLOCATION_MISMATCH
+        Note over Temporal: Thông báo FinOps team qua Slack
+    end
+```
+</Tab>
+
+<Tab>
+### UC-03: Cảnh báo ngưỡng ngân sách
+
+**Trigger:** Governance Service poll ClickHouse mỗi 1 giờ.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant GOV as 🛡️ Governance & Alerting Service
+    participant CH as 🗄️ ClickHouse DWH
+    participant PG as 🗃️ PostgreSQL<br/>(Budget definitions)
+    participant KAFKA as 📨 Kafka
+    participant NOTIF as 🔔 Notification Service
+    participant SLACK as 💬 Slack / Email
+
+    loop Mỗi 1 giờ
+        GOV->>CH: Query SUM(BilledCost) GROUP BY TeamID, BillingPeriod
+        CH-->>GOV: Chi phí thực tế per team
+
+        GOV->>PG: Tải giới hạn Budget per team
+        PG-->>GOV: [{TeamID, monthly_budget, alert_thresholds: [80,90,100]}]
+
+        GOV->>GOV: So sánh actual_cost / monthly_budget per team
+
+        alt Vượt ngưỡng (80% / 90% / 100%)
+            GOV->>KAFKA: Publish sự kiện BUDGET_ALERT<br/>{teamId, threshold, actual, budget, timestamp}
+            KAFKA->>NOTIF: Consume BUDGET_ALERT
+            NOTIF->>PG: Kiểm tra: ngưỡng này đã cảnh báo hôm nay chưa?
+            alt Chưa cảnh báo
+                NOTIF->>SLACK: Gửi cảnh báo tới channel team + channel FinOps
+                NOTIF->>PG: Đánh dấu ngưỡng đã cảnh báo (idempotency guard)
+            else Đã cảnh báo rồi
+                NOTIF-->>NOTIF: Bỏ qua (dedup)
+            end
+        else Dưới ngưỡng
+            GOV-->>GOV: Không có hành động
+        end
+    end
+```
+</Tab>
+
+<Tab>
+### UC-04: Phát hiện bất thường & Agent điều tra
+
+**Trigger:** Governance Service phát hiện Z-Score > ngưỡng trên time series BilledCost.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant GOV as 🛡️ Governance Service
+    participant KAFKA as 📨 Kafka
+    participant ORCH as 🧠 Agent Orchestrator<br/>(Temporal)
+    participant RCA as 🔍 Root Cause Agent
+    participant CH as 🗄️ ClickHouse DWH
+    participant AIGW as 🤖 AI Gateway<br/>(LiteLLM)
+    participant LLM as ✨ LLM<br/>(Claude / GPT-4)
+    participant ARA as 🔧 Auto-Remediation Agent
+    participant SLACK as 💬 Slack / ITSM
+
+    GOV->>GOV: Z-Score(BilledCost[TeamX]) > 3.0
+    GOV->>KAFKA: Publish ANOMALY_DETECTED {teamId, spike_amount, baseline, timestamp}
+
+    KAFKA->>ORCH: Consume ANOMALY_DETECTED
+    ORCH->>ORCH: Bắt đầu Investigation Workflow (Temporal)
+
+    ORCH->>RCA: Kích hoạt Root Cause Analysis
+    RCA->>CH: Query dữ liệu FOCUS — TeamX 7 ngày qua theo ServiceCategory, ResourceName
+    CH-->>RCA: Breakdown chi phí chi tiết
+
+    RCA->>RCA: Phân tích thống kê (so sánh với baseline)
+    RCA->>RCA: Xác định nguyên nhân chính (vd: ServiceCategory=AI API, ResourceName=gpt-4o)
+
+    RCA->>AIGW: Gửi context payload {cost_data_json, anomaly_detail}
+    AIGW->>LLM: Forward prompt (temperature=0, injected JSON thực tế)
+    LLM-->>AIGW: Giả thuyết nguyên nhân gốc + hành động đề xuất
+    AIGW-->>RCA: Kết quả có cấu trúc
+
+    RCA->>ORCH: Trả về {root_cause, confidence_score, suggested_remediation}
+
+    alt confidence_score >= 0.95
+        ORCH->>ARA: Kích hoạt auto-remediation (vd: rate-limit SubAccount)
+        Note over ARA: Xem UC-07 HITL flow
+    else confidence_score < 0.95
+        ORCH->>SLACK: Gửi yêu cầu phê duyệt HITL tới channel FinOps
+        Note over SLACK: Xem UC-07 HITL flow
+    end
+
+    ORCH->>SLACK: Đăng báo cáo điều tra<br/>"🚨 TeamX vượt chi phí 300%.\nNguyên nhân: AI API (gpt-4o) gọi liên tục.\nHành động: [Phê duyệt remediation]"
+```
+</Tab>
+
+<Tab>
+### UC-05: Truy vấn ngôn ngữ tự nhiên (NLQ)
+
+**Trigger:** User gửi câu hỏi qua Dashboard UI.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as 👤 User (CTO / PO)
+    participant UI as 🖥️ Next.js Dashboard
+    participant API as 🔌 NestJS API
+    participant RBAC as 🔐 RBAC Middleware
+    participant NLQ as 💬 NLQ Service
+    participant AIGW as 🤖 AI Gateway
+    participant LLM as ✨ LLM (Claude / GPT-4)
+    participant CH as 🗄️ ClickHouse DWH
+
+    User->>UI: Nhập câu hỏi: "Tại sao chi phí Team A tăng tuần rồi?"
+    UI->>API: POST /api/nlq {question, userId}
+
+    API->>RBAC: Validate JWT, resolve TeamScope cho userId
+    RBAC-->>API: Các team được phép xem: [TeamA] (row-level filter)
+
+    API->>NLQ: Forward {question, teamScope: [TeamA]}
+
+    NLQ->>AIGW: Gửi prompt: "Chuyển câu hỏi thành FOCUS SQL. Chỉ query TeamID IN [TeamA].\nSchema: {FOCUS column definitions}"
+    AIGW->>LLM: Forward (temperature=0)
+    LLM-->>AIGW: SQL đã tạo (scoped theo TeamA)
+    AIGW-->>NLQ: SQL query
+
+    NLQ->>NLQ: Validate SQL (không có DDL, không cross-team, read-only)
+    NLQ->>CH: Thực thi SQL đã validated trên FOCUS_Normalized / Allocated_Cost
+    CH-->>NLQ: Result set dạng JSON
+
+    NLQ->>AIGW: Gửi {result_json, original_question} → "Giải thích dữ liệu này bằng ngôn ngữ bình thường"
+    AIGW->>LLM: Forward
+    LLM-->>AIGW: Giải thích bằng ngôn ngữ tự nhiên
+    AIGW-->>NLQ: Answer text
+
+    NLQ-->>API: {sql, result_table, explanation}
+    API-->>UI: Response
+    UI-->>User: Hiển thị bảng + giải thích AI
+```
+</Tab>
+
+<Tab>
+### UC-06: GenAI tự động báo cáo tháng
+
+**Trigger:** Temporal cron job chạy vào ngày 1 hàng tháng lúc 08:00 ICT.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Temporal as ⏰ Temporal Scheduler
+    participant SUM as 📊 Summary Service
+    participant CH as 🗄️ ClickHouse DWH
+    participant AIGW as 🤖 AI Gateway
+    participant LLM as ✨ LLM (Claude / GPT-4)
+    participant NOTIF as 🔔 Notification Service
+    participant SLACK as 💬 Slack / Email
+
+    Temporal->>SUM: Kích hoạt monthly_report cho period=tháng trước
+
+    SUM->>CH: Query 1 — Tổng chi phí theo Team, BillingPeriod
+    SUM->>CH: Query 2 — Top 5 nguyên nhân chi phí theo ServiceCategory
+    SUM->>CH: Query 3 — Budget vs Actual per Team
+    SUM->>CH: Query 4 — Thay đổi MoM (Month-over-Month) theo %
+    CH-->>SUM: JSON tổng hợp (cả 4 query)
+
+    SUM->>SUM: Tổng hợp context payload có cấu trúc<br/>(giới hạn token budget, mask số liệu nếu cần)
+
+    SUM->>AIGW: Gửi {context_json, report_template_prompt}
+    Note over AIGW: Prompt hướng dẫn LLM viết<br/>tóm tắt executive, highlight bất thường,<br/>liệt kê top 3 khuyến nghị tối ưu
+    AIGW->>LLM: Forward (temperature=0.2)
+    LLM-->>AIGW: Báo cáo FinOps tháng dạng Markdown
+    AIGW-->>SUM: Nội dung báo cáo
+
+    SUM->>SUM: Gắn thêm bảng dữ liệu thô vào báo cáo
+    SUM->>NOTIF: Gửi payload báo cáo {markdown, recipient_list}
+
+    NOTIF->>SLACK: Post lên channel #finops-report (Engineering team)
+    NOTIF->>SLACK: Email tới BOD / Ban Công nghệ (render PDF)
+    SLACK-->>NOTIF: Giao hàng xác nhận
+    NOTIF-->>SUM: Hoàn tất ✅
+```
+</Tab>
+
+<Tab>
+### UC-07: Phê duyệt Human-in-the-Loop (HITL)
+
+**Trigger:** Agent Orchestrator cần phê duyệt từ người trước khi thực hiện remediation.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant ORCH as 🧠 Agent Orchestrator<br/>(Temporal — workflow đang treo)
+    participant SLACK as 💬 Slack
+    participant Human as 👤 FinOps Lead (DaiDX)
+    participant ARA as 🔧 Auto-Remediation Agent
+    participant CH as 🗄️ ClickHouse / Audit Log
+    participant ITSM as 🎫 Jira / ServiceNow
+
+    ORCH->>SLACK: Gửi yêu cầu phê duyệt HITL
+    Note over SLACK: "⚠️ Agent đề xuất: Rate-limit SubAccount TeamX<br/>Độ tin cậy: 87% | Tiết kiệm ước tính: $200/ngày<br/>[✅ Phê duyệt] [❌ Từ chối] [🔍 Điều tra thêm]"
+
+    Note over ORCH: Temporal workflow SUSPENDED,<br/>chờ signal (timeout: 4 tiếng)
+
+    Human->>SLACK: Click [✅ Phê duyệt]
+    SLACK->>ORCH: Gửi approval signal {action: approved, approver: DaiDX, timestamp}
+
+    ORCH->>ORCH: Resume workflow đang treo
+    ORCH->>ARA: Thực thi hành động remediation đã được phê duyệt
+
+    ARA->>ARA: Gọi Cloud Provider API<br/>(vd: đặt giới hạn chi tiêu / cảnh báo trên SubAccount)
+    ARA-->>ORCH: Kết quả action {success: true, detail}
+
+    ORCH->>CH: Ghi Audit Log bất biến<br/>{action, approver, confidence, before_state, after_state, timestamp}
+    ORCH->>ITSM: Tạo ticket "Đã áp dụng auto-remediation — TeamX bị rate-limited"
+    ORCH->>SLACK: Post kết quả "✅ Remediation đã áp dụng. Tài khoản TeamX đã bị rate-limit. Ticket: JIRA-123"
+
+    alt Human click [❌ Từ chối]
+        SLACK->>ORCH: Gửi rejection signal {action: rejected, reason}
+        ORCH->>CH: Ghi Audit Log (action bị từ chối)
+        ORCH->>SLACK: Post "❌ Remediation bị từ chối bởi DaiDX. Cần điều tra thủ công."
+        ORCH-->>ORCH: Workflow kết thúc
+    end
+```
+</Tab>
+
+</Tabs>
+
+---
+
+## 4. API Contracts (Các endpoint chính)
+
+### 4.1 Analytics API
+
+| Method | Endpoint | Mô tả | Auth |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/costs` | Lấy chi phí đã phân bổ theo filter (team, period, env) | JWT + RBAC |
+| `GET` | `/api/costs/summary` | Tổng hợp chi phí theo team/service | JWT + RBAC |
+| `GET` | `/api/budgets` | Lấy giới hạn ngân sách và mức sử dụng hiện tại | JWT + RBAC |
+| `POST` | `/api/nlq` | Gửi câu hỏi chi phí bằng ngôn ngữ tự nhiên | JWT + RBAC |
+| `GET` | `/api/reports/monthly` | Lấy báo cáo FinOps tháng mới nhất | JWT + RBAC |
+
+### 4.2 Admin / FinOps Lead API
+
+| Method | Endpoint | Mô tả | Auth |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/allocation-rules` | Tạo/cập nhật allocation rule | JWT + Admin |
+| `GET` | `/api/allocation-rules` | Danh sách tất cả rules đang active theo priority | JWT + Admin |
+| `POST` | `/api/budgets` | Đặt/cập nhật budget cho team | JWT + Admin |
+| `GET` | `/api/agents/actions` | Danh sách yêu cầu HITL đang chờ phê duyệt | JWT + Admin |
+| `POST` | `/api/agents/actions/:id/approve` | Phê duyệt HITL action | JWT + Admin |
+| `POST` | `/api/agents/actions/:id/reject` | Từ chối HITL action | JWT + Admin |
+
+---
+
+## 5. Chiến lược xử lý lỗi
+
+| Tình huống | Chiến lược |
+| :--- | :--- |
+| Cloud Provider API rate limit (429) | Exponential backoff với jitter, tối đa 5 lần retry |
+| DQ check thất bại | Dừng pipeline, emit cảnh báo, kích hoạt DQ Agent |
+| Allocation zero-sum không khớp | Chặn ghi Allocated_Cost, thông báo FinOps Lead |
+| LLM hallucination / độ tin cậy thấp | Fallback về báo cáo template định sẵn, đánh dấu cần review thủ công |
+| Temporal workflow timeout (HITL > 4h) | Tự động từ chối action, thông báo Slack, ghi audit log |
+| Agent action thực thi thất bại | Rollback, ghi audit log, tạo ITSM ticket |

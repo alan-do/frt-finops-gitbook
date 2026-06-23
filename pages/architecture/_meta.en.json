@@ -1,0 +1,8 @@
+{
+  "index": {
+    "title": "Architecture Overview (HLD)",
+    "href": "/architecture"
+  },
+  "sdd": "Software Design Document (SDD)",
+  "erd": "Entity Relationship Diagram (ERD)"
+}

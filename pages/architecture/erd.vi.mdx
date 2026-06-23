@@ -1,0 +1,264 @@
+import { Callout, Tabs, Tab } from 'nextra/components'
+
+# Sơ đồ Quan hệ Thực thể (ERD)
+
+<Callout type="info" emoji="🗄️">
+  Data model của FRT FinOps được phân chia trên hai database theo quyết định ADR hybrid: **PostgreSQL** cho dữ liệu giao dịch/vận hành (OLTP) và **ClickHouse** cho dữ liệu billing phân tích (OLAP). Cả hai kết nối với nhau qua các shared key (`TeamID`, `SubAccountID`).
+</Callout>
+
+---
+
+## 1. ERD Tổng quan
+
+```mermaid
+erDiagram
+
+    %% ── OLTP: PostgreSQL ──────────────────────────────────────────
+
+    TEAM {
+        uuid    team_id         PK
+        string  team_name
+        string  business_unit
+        string  department
+        string  slack_channel
+        string  lead_email
+        enum    status          "active | inactive"
+        timestamp created_at
+    }
+
+    CLOUD_ACCOUNT {
+        uuid    account_id      PK
+        string  sub_account_id  "ID gốc của Provider (AWS AccountId, Azure SubId…)"
+        string  provider_name   "AWS | Azure | GCP | OpenAI | Anthropic"
+        uuid    team_id         FK
+        string  environment     "dev | staging | production"
+        string  account_alias
+        timestamp created_at
+    }
+
+    BUDGET {
+        uuid      budget_id       PK
+        uuid      team_id         FK
+        string    billing_period  "YYYY-MM"
+        decimal   monthly_limit
+        decimal   alert_80_sent   "null | timestamp"
+        decimal   alert_90_sent
+        decimal   alert_100_sent
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ALLOCATION_RULE {
+        uuid    rule_id         PK
+        string  rule_type       "tag-based | account-based | shared-cost"
+        int     priority        "Số nhỏ hơn = ưu tiên cao hơn"
+        jsonb   match_criteria  "{tag_key, tag_value} or {sub_account_id} or {shared_metric}"
+        uuid    target_team_id  FK
+        string  split_method    "proportional | fixed | equal"
+        boolean is_active
+        uuid    created_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    USER {
+        uuid    user_id         PK
+        string  email
+        string  name
+        enum    role            "finops_admin | engineer | finance | executive"
+        uuid    team_id         FK "nullable — exec không thuộc team cụ thể"
+        string  sso_subject     "Okta / Entra ID sub"
+        timestamp last_login
+    }
+
+    AGENT_ACTION {
+        uuid    action_id           PK
+        string  action_type         "rate-limit | tag-fix | alert-suppress | recommendation"
+        string  status              "pending_hitl | approved | rejected | executed | failed"
+        uuid    triggered_by_alert  FK "→ ANOMALY_ALERT.alert_id"
+        jsonb   proposed_action     "Payload có cấu trúc cho remediation"
+        decimal confidence_score
+        uuid    approved_by         FK "→ USER.user_id, nullable"
+        string  rejection_reason    "nullable"
+        timestamp created_at
+        timestamp resolved_at
+    }
+
+    ANOMALY_ALERT {
+        uuid    alert_id        PK
+        uuid    team_id         FK
+        string  billing_period
+        decimal baseline_cost
+        decimal actual_cost
+        decimal z_score
+        string  top_driver_service
+        string  top_driver_resource
+        string  status          "open | investigating | resolved | false_positive"
+        timestamp detected_at
+        timestamp resolved_at
+    }
+
+    AUDIT_LOG {
+        uuid    log_id          PK
+        string  entity_type     "allocation_rule | budget | agent_action | user"
+        uuid    entity_id
+        string  action          "create | update | delete | approve | reject | execute"
+        uuid    performed_by    FK "→ USER.user_id"
+        jsonb   before_state
+        jsonb   after_state
+        timestamp created_at
+    }
+
+    %% ── OLAP: ClickHouse ──────────────────────────────────────────
+
+    FOCUS_NORMALIZED {
+        string  billing_period          "YYYY-MM-DD (partition key)"
+        string  provider_name           "FOCUS: ProviderName"
+        string  sub_account_id          "FOCUS: SubAccountId"
+        string  service_category        "FOCUS: ServiceCategory"
+        string  service_name            "FOCUS: ServiceName"
+        string  resource_id             "FOCUS: ResourceId"
+        string  resource_name           "FOCUS: ResourceName"
+        string  charge_category         "FOCUS: ChargeCategory (Usage|Tax|Credit)"
+        decimal billed_cost             "FOCUS: BilledCost"
+        decimal effective_cost          "FOCUS: EffectiveCost (sau giảm giá)"
+        string  billing_currency        "FOCUS: BillingCurrency"
+        map     tags                    "FOCUS: Tags {CostCenter, Owner, Env…}"
+        string  region                  "FOCUS: Region"
+        string  s3_source_path          "Truy xuất về file thô"
+        timestamp ingested_at
+    }
+
+    ALLOCATED_COST {
+        string  billing_period          "Partition key"
+        string  sub_account_id
+        string  provider_name
+        string  service_category
+        string  service_name
+        string  resource_id
+        decimal billed_cost
+        decimal effective_cost
+        string  billing_currency
+        uuid    team_id                 "Xác định từ AllocationRule"
+        string  business_unit
+        string  environment             "dev | staging | production"
+        uuid    allocation_rule_id      "Rule nào đã phân bổ bản ghi này"
+        string  split_method
+        decimal split_ratio             "Cho các dòng shared-cost"
+        timestamp allocated_at
+    }
+
+    COST_DAILY_SUMMARY {
+        string  summary_date            "Partition key"
+        uuid    team_id
+        string  provider_name
+        string  service_category
+        string  environment
+        decimal total_billed_cost
+        decimal total_effective_cost
+        int     record_count
+        timestamp computed_at
+    }
+
+    %% ── Relationships ─────────────────────────────────────────────
+
+    TEAM               ||--o{  CLOUD_ACCOUNT     : "sở hữu"
+    TEAM               ||--o{  BUDGET            : "có"
+    TEAM               ||--o{  ALLOCATION_RULE   : "là mục tiêu của"
+    TEAM               ||--o{  USER              : "thành viên"
+    TEAM               ||--o{  ANOMALY_ALERT     : "kích hoạt"
+
+    CLOUD_ACCOUNT      ||--o{  FOCUS_NORMALIZED  : "phát sinh (qua sub_account_id)"
+    ALLOCATION_RULE    ||--o{  ALLOCATED_COST    : "định nghĩa"
+    FOCUS_NORMALIZED   ||--o{  ALLOCATED_COST    : "tạo ra"
+
+    BUDGET             ||--o{  ANOMALY_ALERT     : "vượt ngưỡng kích hoạt"
+    ANOMALY_ALERT      ||--o|  AGENT_ACTION      : "được điều tra bởi"
+    USER               ||--o{  AGENT_ACTION      : "phê duyệt / từ chối"
+
+    AUDIT_LOG          }o--||  USER              : "thực hiện bởi"
+    ALLOCATED_COST     ||--o{  COST_DAILY_SUMMARY: "tổng hợp thành"
+```
+
+---
+
+## 2. Phân bổ Database
+
+<Tabs items={['PostgreSQL (OLTP)', 'ClickHouse (OLAP)']}>
+
+<Tab>
+### PostgreSQL — Bảng Giao dịch / Vận hành
+
+Các bảng này lưu cấu hình, rules và trạng thái cần ACID transactions và cập nhật thường xuyên.
+
+| Bảng | Mục đích | Quan hệ chính |
+| :--- | :--- | :--- |
+| `TEAM` | Danh sách master các team Engineering/Product | Cha của `CLOUD_ACCOUNT`, `BUDGET`, `USER` |
+| `CLOUD_ACCOUNT` | Map cloud sub-accounts → teams | Kết nối `SubAccountId` (provider) → `TeamID` |
+| `BUDGET` | Giới hạn ngân sách tháng + cờ cảnh báo | Thuộc về `TEAM`; trạng thái cảnh báo tracked per threshold |
+| `ALLOCATION_RULE` | Rules có thứ tự để phân bổ chi phí | Trỏ đến target `TEAM`; priority xác định thứ tự thực thi |
+| `USER` | Người dùng platform với roles (RBAC) | Thuộc về `TEAM`; liên kết với SSO (Okta/Entra) |
+| `ANOMALY_ALERT` | Ghi nhận các bất thường chi phí phát hiện | Thuộc về `TEAM`; kích hoạt `AGENT_ACTION` |
+| `AGENT_ACTION` | Trạng thái HITL workflow cho remediation | Liên kết với `ANOMALY_ALERT` và `USER` phê duyệt |
+| `AUDIT_LOG` | Event log bất biến của mọi thay đổi | Tham chiếu bất kỳ entity; thực hiện bởi `USER` |
+
+**Các quyết định thiết kế chính:**
+- `ALLOCATION_RULE.priority` (int) kiểm soát thứ tự thực thi — số nhỏ hơn = ưu tiên cao hơn. Tag-based rules luôn chạy trước account-based.
+- Các cờ cảnh báo trong `BUDGET` (`alert_80_sent`, `alert_90_sent`, `alert_100_sent`) là timestamps, không phải booleans. Điều này cho phép cảnh báo lại trong billing period mới trong khi ngăn duplicate alerts trong cùng một period.
+- `AUDIT_LOG` là append-only — không có UPDATE hay DELETE nào được phép ở tầng application.
+- `AGENT_ACTION.proposed_action` (JSONB) lưu toàn bộ structured payload để hành động remediation chính xác có thể được replay hoặc review bất kỳ lúc nào.
+
+</Tab>
+
+<Tab>
+### ClickHouse — Bảng Phân tích (OLAP)
+
+Các bảng này lưu billing records khối lượng lớn và được tối ưu cho aggregation queries. Tất cả schema được căn chỉnh theo chuẩn **FOCUS 1.4**.
+
+| Bảng | Mục đích | Partition Key | Engine |
+| :--- | :--- | :--- | :--- |
+| `FOCUS_NORMALIZED` | Billing records theo chuẩn FOCUS sau ETL | `billing_period` (monthly) | `MergeTree` |
+| `ALLOCATED_COST` | Billing records được enriched với `TeamID` sau phân bổ | `billing_period` | `MergeTree` |
+| `COST_DAILY_SUMMARY` | Rollup hàng ngày đã pre-aggregated per team/service | `summary_date` | `SummingMergeTree` |
+
+**Các quyết định thiết kế chính:**
+- `FOCUS_NORMALIZED` là **append-only** — billing records thô không bao giờ được cập nhật. Re-ingestion tạo rows mới; xử lý duplicate dùng `ReplacingMergeTree` với `ingested_at` là version key.
+- `ALLOCATED_COST` lưu `split_ratio` cho các shared-cost rows, cho phép audit đầy đủ về phân phối tỷ lệ.
+- `COST_DAILY_SUMMARY` là materialized view / scheduled aggregation để phục vụ Dashboard queries với độ trễ dưới giây, tránh full scan trên `ALLOCATED_COST` cho mỗi lần render chart.
+- Các cross-database joins (PostgreSQL ↔ ClickHouse) được xử lý ở **application layer** (NestJS), không phải DB-level federation, để tránh tight coupling.
+
+</Tab>
+
+</Tabs>
+
+---
+
+## 3. Bảng Mapping FOCUS Columns
+
+Bảng `FOCUS_NORMALIZED` là canonical source of truth. Dưới đây là mapping từ cột vendor-specific sang chuẩn FOCUS 1.4:
+
+| FOCUS Column | AWS CUR | Azure Export | GCP Billing | OpenAI Usage |
+| :--- | :--- | :--- | :--- | :--- |
+| `BilledCost` | `UnblendedCost` | `Cost` | `Cost after credits` | `total_usage.cost` |
+| `EffectiveCost` | `EffectiveCost` | `CostInBillingCurrency` | `Cost` | — |
+| `ProviderName` | `"AWS"` | `"Azure"` | `"GCP"` | `"OpenAI"` |
+| `SubAccountId` | `linkedAccountId` | `subscriptionId` | `project.id` | `organization_id` |
+| `ServiceCategory` | `productFamily` | `meterCategory` | `service.description` | `"AI API"` |
+| `ServiceName` | `productName` | `meterName` | `sku.description` | `model` |
+| `ResourceId` | `resourceId` | `resourceId` | `resource.name` | — |
+| `ChargeCategory` | `lineItemType` | `ChargeType` | `type` | `"Usage"` |
+| `BillingCurrency` | `currencyCode` | `billingCurrency` | `currency` | `currency` |
+| `Tags` | `resourceTags` | `tags` | `labels` | — |
+
+---
+
+## 4. Chính sách Lưu giữ Dữ liệu
+
+| Bảng | Thời gian lưu | Lý do |
+| :--- | :--- | :--- |
+| `FOCUS_NORMALIZED` | 3 năm | Compliance & phân tích xu hướng |
+| `ALLOCATED_COST` | 3 năm | Audit trail chargeback |
+| `COST_DAILY_SUMMARY` | 2 năm | Hiệu suất Dashboard |
+| `AUDIT_LOG` | 5 năm | Yêu cầu tuân thủ SOC2 |
+| `AGENT_ACTION` | 2 năm | Review hành vi Agent |
+| `ANOMALY_ALERT` | 1 năm | Lịch sử sự cố |
