@@ -3,6 +3,7 @@
     "title": "Architecture Overview (HLD)",
     "href": "/architecture"
   },
+  "core-engine": "Core Engine (Layered)",
   "sdd": "Software Design Document (SDD)",
   "erd": "Entity Relationship Diagram (ERD)"
 }

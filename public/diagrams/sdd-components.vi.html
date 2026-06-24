@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SDD — Tương tác Component</title>
+<link rel="stylesheet" href="/diagram-style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">Software Design Document · Bản đồ Component</div>
+  <h1 class="title">Tương tác giữa các Service Component</h1>
+  <p class="subtitle">
+    Cách các service nội bộ chính giao tiếp, nhóm theo trách nhiệm. Dữ liệu chảy trái sang phải:
+    ingestion → core → storage, với event bus và notification ở bên cạnh.
+  </p>
+  <p class="source">Nguồn: <a href="#">/architecture/sdd</a> · NestJS services · ClickHouse + PostgreSQL · Kafka/SQS</p>
+
+  <div class="frame">
+    <div class="frame-head">FINOPS PLATFORM — <b>CÁC SERVICE COMPONENT THEO TRÁCH NHIỆM</b></div>
+
+    <!-- Ingestion -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">1</span> INGESTION</div>
+      <div class="grid c3">
+        <div class="card"><div class="name">Cloud Connectors</div><div class="desc">AWS / Azure / GCP / OpenAI · kéo raw billing</div></div>
+        <div class="card"><div class="name">ETL &amp; Normalization</div><div class="desc">Map cột vendor → FOCUS</div></div>
+        <div class="card"><div class="name">Data Quality Framework</div><div class="desc">Freshness · Completeness · Consistency</div></div>
+      </div>
+    </div>
+
+    <div class="flow">↓ raw → S3 raw → Parquet (FOCUS) → bulk load</div>
+
+    <!-- Core -->
+    <div class="layer core">
+      <div class="layer-label"><span class="layer-num">2</span> CORE PROCESSING &nbsp;<span class="badge scope">tất định</span></div>
+      <div class="grid c3">
+        <div class="card"><div class="name">Allocation &amp; Rules Engine</div><div class="desc">Phân bổ theo rule · verify zero-sum</div></div>
+        <div class="card"><div class="name">Analytics &amp; Query API (OLAP)</div><div class="desc">Aggregation ClickHouse dưới giây</div></div>
+        <div class="card"><div class="name">Governance &amp; Alerting</div><div class="desc">Budget vs actual · phát event</div></div>
+      </div>
+    </div>
+
+    <!-- Storage -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">3</span> STORAGE</div>
+      <div class="grid c4">
+        <div class="card green"><div class="name">S3 Raw / Clean</div><div class="desc">Raw bất biến · Parquet FOCUS</div></div>
+        <div class="card green"><div class="name">ClickHouse DWH</div><div class="desc">FOCUS_NORMALIZED · ALLOCATED_COST</div></div>
+        <div class="card green"><div class="name">PostgreSQL OLTP</div><div class="desc">Rule · budget · user · audit</div></div>
+        <div class="card green"><div class="name">Kafka / SQS</div><div class="desc">Event bus · task queue</div></div>
+      </div>
+    </div>
+
+    <div class="flow blue">↓ analytics phục vụ context read-only</div>
+
+    <!-- AI + Agents -->
+    <div class="layer blue">
+      <div class="layer-label"><span class="layer-num">4</span> AI &amp; AGENTS (READ-ONLY) &nbsp;<span class="badge info">không tính cost</span></div>
+      <div class="grid c4">
+        <div class="card blue"><div class="name">AI Gateway (LiteLLM)</div><div class="desc">Route các LLM provider</div></div>
+        <div class="card blue"><div class="name">NLQ / Summary</div><div class="desc">Chỉ dùng API tool scoped</div></div>
+        <div class="card violet"><div class="name">Agent Orchestrator</div><div class="desc">Temporal · DQA / RCA / ARA</div></div>
+        <div class="card violet"><div class="name">HITL Approval</div><div class="desc">Slack / Teams ChatOps</div></div>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">5</span> NOTIFICATION &amp; OPS</div>
+      <div class="grid c2">
+        <div class="card red"><div class="name">Slack / MS Teams</div><div class="desc">Alert · callback duyệt HITL</div></div>
+        <div class="card red"><div class="name">Jira / ServiceNow</div><div class="desc">Ticket auto-remediation</div></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw core"></i> Core tất định</span>
+      <span><i class="sw in"></i> Ingestion</span>
+      <span><i class="sw blue"></i> AI / agent (read-only)</span>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Allocation Engine chỉ đọc/ghi các store tất định. AI và agent nhận context read-only đã tổng hợp
+    rồi đẩy sang notification/ITSM — không bao giờ tham gia vào tính toán chi phí.
+  </p>
+
+</div>
+</body>
+</html>

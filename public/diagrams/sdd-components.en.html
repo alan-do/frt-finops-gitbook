@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SDD — Component Interaction</title>
+<link rel="stylesheet" href="/diagram-style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">Software Design Document · Component Map</div>
+  <h1 class="title">Service Component Interaction</h1>
+  <p class="subtitle">
+    How the major internal services communicate, grouped by responsibility. Data flows left-to-right:
+    ingestion → core → storage, with the event bus and notification on the side.
+  </p>
+  <p class="source">Source: <a href="#">/architecture/sdd</a> · NestJS services · ClickHouse + PostgreSQL · Kafka/SQS</p>
+
+  <div class="frame">
+    <div class="frame-head">FINOPS PLATFORM — <b>SERVICE COMPONENTS BY RESPONSIBILITY</b></div>
+
+    <!-- Ingestion -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">1</span> INGESTION</div>
+      <div class="grid c3">
+        <div class="card"><div class="name">Cloud Connectors</div><div class="desc">AWS / Azure / GCP / OpenAI · pull raw billing</div></div>
+        <div class="card"><div class="name">ETL &amp; Normalization</div><div class="desc">Map vendor columns → FOCUS</div></div>
+        <div class="card"><div class="name">Data Quality Framework</div><div class="desc">Freshness · Completeness · Consistency</div></div>
+      </div>
+    </div>
+
+    <div class="flow">↓ raw → S3 raw → Parquet (FOCUS) → bulk load</div>
+
+    <!-- Core -->
+    <div class="layer core">
+      <div class="layer-label"><span class="layer-num">2</span> CORE PROCESSING &nbsp;<span class="badge scope">deterministic</span></div>
+      <div class="grid c3">
+        <div class="card"><div class="name">Allocation &amp; Rules Engine</div><div class="desc">Rule-based attribution · zero-sum verify</div></div>
+        <div class="card"><div class="name">Analytics &amp; Query API (OLAP)</div><div class="desc">Sub-second ClickHouse aggregations</div></div>
+        <div class="card"><div class="name">Governance &amp; Alerting</div><div class="desc">Budget vs actual · emits events</div></div>
+      </div>
+    </div>
+
+    <!-- Storage -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">3</span> STORAGE</div>
+      <div class="grid c4">
+        <div class="card green"><div class="name">S3 Raw / Clean</div><div class="desc">Immutable raw · Parquet FOCUS</div></div>
+        <div class="card green"><div class="name">ClickHouse DWH</div><div class="desc">FOCUS_NORMALIZED · ALLOCATED_COST</div></div>
+        <div class="card green"><div class="name">PostgreSQL OLTP</div><div class="desc">Rules · budgets · users · audit</div></div>
+        <div class="card green"><div class="name">Kafka / SQS</div><div class="desc">Event bus · task queue</div></div>
+      </div>
+    </div>
+
+    <div class="flow blue">↓ analytics serves read-only context</div>
+
+    <!-- AI + Agents -->
+    <div class="layer blue">
+      <div class="layer-label"><span class="layer-num">4</span> AI &amp; AGENTS (READ-ONLY) &nbsp;<span class="badge info">no cost calculation</span></div>
+      <div class="grid c4">
+        <div class="card blue"><div class="name">AI Gateway (LiteLLM)</div><div class="desc">Routes LLM providers</div></div>
+        <div class="card blue"><div class="name">NLQ / Summary</div><div class="desc">Scoped API tools only</div></div>
+        <div class="card violet"><div class="name">Agent Orchestrator</div><div class="desc">Temporal · DQA / RCA / ARA</div></div>
+        <div class="card violet"><div class="name">HITL Approval</div><div class="desc">Slack / Teams ChatOps</div></div>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">5</span> NOTIFICATION &amp; OPS</div>
+      <div class="grid c2">
+        <div class="card red"><div class="name">Slack / MS Teams</div><div class="desc">Alerts · HITL approval callbacks</div></div>
+        <div class="card red"><div class="name">Jira / ServiceNow</div><div class="desc">Auto-remediation tickets</div></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw core"></i> Deterministic core</span>
+      <span><i class="sw in"></i> Ingestion</span>
+      <span><i class="sw blue"></i> AI / agents (read-only)</span>
+    </div>
+  </div>
+
+  <p class="footnote">
+    The Allocation Engine reads/writes only the deterministic stores. AI and agents consume aggregated
+    read-only context and push to notification/ITSM — they never participate in the cost calculation.
+  </p>
+
+</div>
+</body>
+</html>

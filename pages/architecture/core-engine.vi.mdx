@@ -1,0 +1,34 @@
+import { Callout } from 'nextra/components'
+
+# FinOps Core Engine — Kiến trúc Phân lớp
+
+<Callout type="info" emoji="🎯">
+  Sau checkpoint với CTO, team tập trung xây dựng **core xử lý tất định trước**. Các resource/connector (AWS, Azure, GCP, OpenAI…) sẽ ghép vào sau dưới dạng **add-on qua chuẩn FOCUS**. Tính tiền 100% theo rule; AI không bao giờ chạm vào tính toán chi phí.
+</Callout>
+
+Sơ đồ này được thiết kế như một lập luận **bảo vệ quyết định về phạm vi**: trực quan hóa câu chuyện "làm core trước, resource là add-on FOCUS sau". Layer 1–2 làm ngay; Layer 3–4 (AI, Agent/HITL, dashboard, Kafka) hoãn lại theo bản audit HLD độc lập.
+
+<iframe
+  src="/finops-core-architecture.vi.html"
+  style={{ width: '100%', height: '1850px', border: '1px solid var(--nextra-card-line, #2a2a2e)', borderRadius: '14px', marginTop: '1.5rem', background: '#0a0a0b' }}
+  title="FinOps Core Engine Layered Architecture"
+  loading="lazy"
+/>
+
+<Callout type="default" emoji="🔗">
+  Xem toàn màn hình: <a href="/finops-core-architecture.vi.html" target="_blank" rel="noopener noreferrer">mở sơ đồ độc lập</a> (mở tab mới).
+</Callout>
+
+## Vì sao chọn phạm vi này
+
+Core là phần lõi tất định, không phụ thuộc vendor của nền tảng:
+
+- **Connector contract + Mock** — `fetchRaw()` + `mapToFocus()`. Chuẩn FOCUS là điểm ghép nối; connector thật là add-on implement cùng contract.
+- **ETL Normalizer** — map cột vendor → FOCUS 1.4, thuần (pure) và truy vết được.
+- **Data Quality (fail-closed)** — freshness, completeness, và zero-sum consistency theo từng tiền tệ, tất cả đều chặn. Không load một phần.
+- **Allocation & Rules Engine** — ưu tiên theo thứ tự (tag → account → shared-cost), largest-remainder split (chia lẻ đến từng xu chính xác), bucket `__UNALLOCATED__` cho chi phí idle/mồ côi, kiểm tra zero-sum theo từng tiền tệ. Không có AI trong tính toán.
+- **Lưu trữ có version** — ingestion version dạng append-only + Allocation_Run thay thế khi chạy lại, phục vụ restatement an toàn.
+
+Engine chạy hoàn toàn trên in-memory repository, nên không cần bất kỳ hạ tầng nào bị hoãn (Kafka, Temporal, ClickHouse, Postgres) để phát triển, test hay chứng minh tính đúng đắn. Việc chuyển sang store thật chỉ là re-bind token, không đổi logic core.
+
+> Contract chi tiết, sequence flow, và 27 correctness property nằm trong [spec `finops-core-engine`](/architecture/sdd).

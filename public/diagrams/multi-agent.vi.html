@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiến trúc Multi-Agent trên nền FOCUS</title>
+<link rel="stylesheet" href="/diagram-style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">Autonomous FinOps · Đề xuất Multi-Agent</div>
+  <h1 class="title">Kiến trúc Multi-Agent trên nền FOCUS</h1>
+  <p class="subtitle">
+    Bốn agent chuyên biệt vận hành trên một FOCUS Data Lake duy nhất, điều phối bởi một orchestrator.
+    Vì dữ liệu chỉ chuẩn hóa một lần, mỗi agent hoạt động được trên mọi provider.
+  </p>
+  <p class="source">Nguồn: <a href="#">/check-point/multi-agent-architecture</a> · Orchestrator · FOCUS Data Lake</p>
+
+  <div class="frame">
+    <div class="frame-head">AUTONOMOUS FINOPS — <b>CÁC AGENT NÓI CHUNG MỘT NGÔN NGỮ DỮ LIỆU: FOCUS</b></div>
+
+    <!-- Data generators -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">1</span> DATA GENERATORS (MULTI-CLOUD / SAAS)</div>
+      <div class="grid c3">
+        <div class="card"><div class="name">AWS Cost Explorer</div><div class="desc">Raw billing</div></div>
+        <div class="card"><div class="name">Azure Billing API</div><div class="desc">Raw billing</div></div>
+        <div class="card"><div class="name">OpenAI Usage API</div><div class="desc">API usage</div></div>
+      </div>
+    </div>
+
+    <div class="flow">↓ raw billing / usage</div>
+
+    <!-- Agents -->
+    <div class="layer core">
+      <div class="layer-label"><span class="layer-num">2</span> HỆ THỐNG MULTI-AGENT TỰ TRỊ &nbsp;<span class="badge scope">được điều phối</span></div>
+      <div class="grid c2" style="margin-bottom:12px">
+        <div class="card wide"><div class="name">🧠 Orchestrator (LangChain / LangGraph)</div><div class="desc">Phân công, điều phối, giao việc và tổng hợp giữa bốn agent</div></div>
+      </div>
+      <div class="grid c4">
+        <div class="card"><div class="name">🕵️ Data Ingestion Agent</div><div class="desc">Phiên dịch chung · cột vendor → FOCUS (BilledCost, ProviderName…)</div></div>
+        <div class="card"><div class="name">🚨 Anomaly Detection Agent</div><div class="desc">Một model trên BilledCost · giám sát toàn tổ chức · baseline Z-score</div></div>
+        <div class="card"><div class="name">💡 Optimization Analyst</div><div class="desc">Quét lịch sử FOCUS tìm tài nguyên idle · đề xuất tiết kiệm</div></div>
+        <div class="card"><div class="name">🗣️ Reporting Agent</div><div class="desc">GenAI phát ngôn · giải thích spike bằng ngôn ngữ tự nhiên</div></div>
+      </div>
+    </div>
+
+    <div class="flow">↓ transform sang FOCUS · stream BilledCost · query lịch sử</div>
+
+    <!-- Data layer -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">3</span> TẦNG DỮ LIỆU CHUẨN HÓA</div>
+      <div class="grid c2">
+        <div class="card green"><div class="name">FOCUS Data Lake</div><div class="desc">Một schema chuẩn hóa duy nhất · "lingua franca" mọi agent đọc &amp; ghi</div></div>
+        <div class="card green"><div class="name">Historical FOCUS Store</div><div class="desc">Baseline xu hướng · drill-down ServiceCategory / ResourceName</div></div>
+      </div>
+    </div>
+
+    <div class="flow blue">↓ alert · đề xuất · root cause</div>
+
+    <!-- Action -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">4</span> ACTION &amp; NOTIFICATION</div>
+      <div class="grid c2">
+        <div class="card red"><div class="name">Internal Channel / Email</div><div class="desc">Báo cáo &amp; alert bằng ngôn ngữ tự nhiên</div></div>
+        <div class="card violet"><div class="name">Auto-Remediation (tùy chọn)</div><div class="desc">Rate-limit account · qua HITL, dry-run trước</div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="principle"><span class="dot a"></span><span><b style="color:var(--text)">Viết một lần, chạy mọi nơi</b> — agent chỉ cần train/prompt một lần trên FOCUS và chạy được trên mọi provider mà không đổi code.</span></div>
+      <div class="principle"><span class="dot r"></span><span><b style="color:var(--text)">HITL bắt buộc cho MVP</b> — AI đề xuất, người duyệt. Auto-execute là bước cuối, chỉ khi confidence đã calibrate.</span></div>
+      <div class="principle"><span class="dot v"></span><span><b style="color:var(--text)">Triage rẻ trước</b> — thuật toán Z-score thống kê phát hiện bất thường; LLM chỉ dùng sau đó để giải thích, kiểm soát chi phí AI.</span></div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw core"></i> Hệ multi-agent</span>
+      <span><i class="sw blue"></i> Tầng dữ liệu FOCUS</span>
+      <span><i class="sw in"></i> Nguồn &amp; hành động</span>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Luồng sự cố: Ingestion Agent chuẩn hóa một spike → Anomaly Agent gắn cờ +300% trên BilledCost →
+    Optimization Analyst tìm root cause qua FOCUS SQL → Reporting Agent gửi alert dễ đọc →
+    (tùy chọn) Orchestrator rate-limit account sau khi được HITL duyệt.
+  </p>
+
+</div>
+</body>
+</html>

@@ -3,6 +3,7 @@
     "title": "Tổng quan Kiến trúc (HLD)",
     "href": "/architecture"
   },
+  "core-engine": "Core Engine (Phân lớp)",
   "sdd": "Tài liệu Thiết kế Phần mềm (SDD)",
   "erd": "Sơ đồ Quan hệ Thực thể (ERD)"
 }

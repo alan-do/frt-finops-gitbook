@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Enterprise FinOps Platform — High Level Architecture</title>
+<link rel="stylesheet" href="/diagram-style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">High Level Design · 4-Layer Architecture</div>
+  <h1 class="title">Enterprise FinOps Platform — Layered Architecture</h1>
+  <p class="subtitle">
+    A hard boundary separates deterministic financial calculation from AI. Money is computed
+    bottom-up by rules; AI only reads already-finalized data at the top of the flow.
+  </p>
+  <p class="source">
+    Source: <a href="#">/architecture</a> · Stack: NestJS · ClickHouse · PostgreSQL · S3/Parquet · Temporal · LiteLLM
+  </p>
+
+  <div class="frame">
+    <div class="frame-head">ENTERPRISE FINOPS PLATFORM — <b>FOUR LAYERS · DETERMINISTIC CORE, AI READ-ONLY ON TOP</b></div>
+
+    <!-- LAYER 4 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">4</span> AGENT AUTOMATION (WITH HUMAN-IN-THE-LOOP) &nbsp;
+        <span class="badge defer">read / propose only</span></div>
+      <div class="grid c4">
+        <div class="card"><div class="name">Agent Orchestrator</div><div class="desc">Temporal · pause/resume for HITL approval</div></div>
+        <div class="card"><div class="name">Data Quality Agent</div><div class="desc">Investigates DQ failures</div></div>
+        <div class="card"><div class="name">Root Cause Agent</div><div class="desc">Hypotheses from logs &amp; metrics</div></div>
+        <div class="card"><div class="name">Auto-Remediation Agent</div><div class="desc">Acts only above confidence + HITL</div></div>
+      </div>
+    </div>
+
+    <div class="flow">▲ only reads / proposes — never writes cost</div>
+
+    <!-- LAYER 3 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">3</span> AI INTELLIGENCE (READ-ONLY) &nbsp;
+        <span class="badge info">predefined API tools, no direct SQL</span></div>
+      <div class="grid c4">
+        <div class="card blue"><div class="name">AI Gateway</div><div class="desc">LiteLLM · routes OpenAI/Claude/Gemini</div></div>
+        <div class="card blue"><div class="name">NL Query Service</div><div class="desc">Question → scoped API tool, never raw SQL</div></div>
+        <div class="card blue"><div class="name">Recommendation</div><div class="desc">Savings suggestions on validated data</div></div>
+        <div class="card blue"><div class="name">Summary Service</div><div class="desc">Executive reports · temperature 0</div></div>
+      </div>
+    </div>
+
+    <div class="flow blue">▲ consumes aggregated JSON context · AI never in the calculation path</div>
+
+    <!-- LAYER 2 - CORE -->
+    <div class="layer core">
+      <div class="layer-label"><span class="layer-num">2</span> FINOPS CORE PLATFORM · DETERMINISTIC HEART &nbsp;
+        <span class="badge scope">source of truth</span></div>
+      <div class="grid c5">
+        <div class="card"><div class="name">ETL &amp; Normalization</div><div class="desc">Vendor → FOCUS 1.4</div></div>
+        <div class="card"><div class="name">Data Quality Framework</div><div class="desc">Fail-closed · zero-sum</div></div>
+        <div class="card"><div class="name">Allocation Engine</div><div class="desc">Rule-based attribution</div></div>
+        <div class="card"><div class="name">Cost Analytics</div><div class="desc">ClickHouse OLAP</div></div>
+        <div class="card"><div class="name">Data Lake</div><div class="desc">S3 / Parquet</div></div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">100% rule-based</span>
+        <span class="pill on">Auditable</span>
+        <span class="pill on">Zero-sum invariant</span>
+        <span class="pill on">No AI in calculation</span>
+      </div>
+    </div>
+
+    <div class="flow">▲ raw data in · normalized + allocated cost out</div>
+
+    <!-- LAYER 1 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">1</span> DATA INGESTION &nbsp;
+        <span class="badge info">FOCUS-based connectors (add-ons)</span></div>
+      <div class="grid c4">
+        <div class="card"><div class="name">AWS Connector</div><div class="desc">CUR billing export</div></div>
+        <div class="card"><div class="name">Azure Connector</div><div class="desc">Billing export</div></div>
+        <div class="card"><div class="name">GCP Connector</div><div class="desc">Billing export</div></div>
+        <div class="card"><div class="name">K8s Connector</div><div class="desc">Usage metrics for shared-cost</div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="principle"><span class="dot g"></span><span><b style="color:var(--text)">Data Correctness First</b> — accuracy, auditability, traceability override AI capability. Every allocation is deterministically traceable.</span></div>
+      <div class="principle"><span class="dot a"></span><span><b style="color:var(--text)">AI must not calculate cost</b> — Layer 3–4 read only. The financial source of truth stays 100% rule-based in Layer 2.</span></div>
+      <div class="principle"><span class="dot r"></span><span><b style="color:var(--text)">Agentic safety</b> — every agent action carries a confidence score, an audit trail, and HITL approval below threshold.</span></div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw core"></i> Deterministic core (source of truth)</span>
+      <span><i class="sw blue"></i> AI / read-only</span>
+      <span><i class="sw in"></i> Ingestion &amp; agents</span>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Flow: <code>Ingest → Parse/Clean → Load Parquet → Rule Engine → ClickHouse → NestJS API → Dashboard</code>.
+    AI receives "context" at the end of the flow, never in the middle.
+  </p>
+
+</div>
+</body>
+</html>

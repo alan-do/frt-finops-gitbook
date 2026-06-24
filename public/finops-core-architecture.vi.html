@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinOps Core Engine — Kiến trúc Phân lớp</title>
+<style>
+  :root{
+    --bg:#0a0a0b;
+    --panel:#121214;
+    --panel-2:#161618;
+    --card:#1a1a1d;
+    --card-line:#2a2a2e;
+    --accent:#e0a528;
+    --accent-soft:#c79324;
+    --text:#e8e8ea;
+    --muted:#8a8a90;
+    --muted-2:#6a6a70;
+    --green:#4a8a5f;
+    --blue:#4a7fb5;
+    --red:#b5564a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:40px 24px 80px;
+    line-height:1.5;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+
+  .doc-tag{
+    font-size:11px;letter-spacing:.18em;color:var(--accent);
+    font-weight:600;text-transform:uppercase;margin-bottom:10px;
+  }
+  h1.title{font-size:26px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+  .subtitle{color:var(--muted);font-size:14px;max-width:760px;margin-bottom:6px}
+  .source{color:var(--muted-2);font-size:12px;margin-bottom:34px}
+  .source a{color:var(--accent-soft);text-decoration:none}
+
+  /* Outer architecture frame */
+  .frame{
+    border:1px solid var(--card-line);
+    border-radius:16px;
+    background:linear-gradient(180deg,#0e0e10,#111113);
+    padding:26px;
+    position:relative;
+  }
+  .frame-head{
+    font-size:11px;letter-spacing:.14em;color:var(--muted);
+    text-transform:uppercase;font-weight:600;margin-bottom:22px;
+  }
+  .frame-head b{color:var(--text)}
+
+  /* Layer block */
+  .layer{
+    border:1px dashed var(--card-line);
+    border-radius:14px;
+    padding:18px 18px 20px;
+    margin-bottom:16px;
+    background:rgba(255,255,255,.012);
+  }
+  .layer.core{
+    border:1px solid var(--accent);
+    background:rgba(224,165,40,.04);
+    box-shadow:0 0 0 1px rgba(224,165,40,.08), 0 8px 30px -18px rgba(224,165,40,.4);
+  }
+  .layer-label{
+    font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-bottom:14px;display:flex;
+    align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .layer.core .layer-label{color:var(--accent)}
+  .layer-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:20px;height:20px;border-radius:6px;background:var(--card);
+    border:1px solid var(--card-line);color:var(--muted);font-size:11px;font-weight:700;
+  }
+  .layer.core .layer-num{background:var(--accent);color:#1a1206;border-color:var(--accent)}
+  .badge{
+    font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    padding:2px 8px;border-radius:20px;font-weight:600;
+  }
+  .badge.scope{background:rgba(224,165,40,.14);color:var(--accent);border:1px solid rgba(224,165,40,.3)}
+  .badge.defer{background:rgba(120,120,128,.12);color:var(--muted);border:1px solid var(--card-line)}
+
+  /* Grid of cards */
+  .grid{display:grid;gap:12px}
+  .grid.c4{grid-template-columns:repeat(4,1fr)}
+  .grid.c3{grid-template-columns:repeat(3,1fr)}
+  .grid.c2{grid-template-columns:repeat(2,1fr)}
+  .grid.c5{grid-template-columns:repeat(5,1fr)}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:10px;
+    padding:14px 14px 15px;
+    min-height:84px;
+  }
+  .card .name{font-size:13.5px;font-weight:650;color:var(--text);margin-bottom:5px;letter-spacing:-.005em}
+  .card .desc{font-size:11.5px;color:var(--muted);line-height:1.45}
+  .card .file{font-size:10.5px;color:var(--muted-2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:7px}
+
+  .card.accent{border-color:rgba(224,165,40,.35);background:rgba(224,165,40,.05)}
+  .card.accent .name{color:var(--accent)}
+
+  .card.dim{opacity:.5}
+  .card.dim .name{color:var(--muted)}
+
+  /* full-width highlighted card */
+  .card.wide{min-height:auto;border-color:rgba(224,165,40,.4);background:rgba(224,165,40,.05)}
+  .card.wide .name{color:var(--accent);font-size:14px}
+  .card.wide .desc{margin-top:4px}
+
+  /* flow arrow between layers */
+  .flow{
+    text-align:center;color:var(--accent);font-weight:650;font-size:13px;
+    margin:6px 0 16px;letter-spacing:.01em;
+  }
+  .flow .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--muted);font-weight:500}
+
+  .pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .pill{
+    font-size:11px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--card-line);border-radius:6px;padding:4px 9px;
+  }
+  .pill.on{color:var(--accent);border-color:rgba(224,165,40,.35);background:rgba(224,165,40,.06)}
+  .pill.off{color:var(--muted-2);text-decoration:line-through;text-decoration-color:var(--red)}
+
+  .principle{
+    display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--muted);
+    margin-top:4px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+  .dot.g{background:var(--green)}.dot.b{background:var(--blue)}.dot.a{background:var(--accent)}
+
+  .legend{
+    display:flex;gap:20px;flex-wrap:wrap;margin-top:26px;padding-top:20px;
+    border-top:1px solid var(--card-line);font-size:11.5px;color:var(--muted);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:22px;height:12px;border-radius:4px;display:inline-block}
+  .sw.core{background:rgba(224,165,40,.18);border:1px solid var(--accent)}
+  .sw.in{background:var(--card);border:1px solid var(--card-line)}
+  .sw.def{background:rgba(120,120,128,.1);border:1px dashed var(--card-line)}
+
+  .footnote{color:var(--muted-2);font-size:11px;margin-top:28px;line-height:1.6}
+
+  @media(max-width:860px){
+    .grid.c4,.grid.c5{grid-template-columns:repeat(2,1fr)}
+    .grid.c3{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">Solution Architecture · Xây dựng Core Engine</div>
+  <h1 class="title">FinOps Core Engine — Kiến trúc Phân lớp</h1>
+  <p class="subtitle">
+    Core tất định, fail-closed được làm trước (theo định hướng CTO). Resource/connector ghép vào sau
+    dưới dạng add-on theo chuẩn FOCUS. Tính tiền 100% theo rule; AI không bao giờ chạm vào tính toán chi phí.
+  </p>
+  <p class="source">
+    Spec: <a href="#">.kiro/specs/finops-core-engine</a> · Stack: NestJS / TypeScript · decimal.js ·
+    Phạm vi = Layer 1–2 (core) · Layer 3–4 hoãn lại (theo bản audit HLD)
+  </p>
+
+  <div class="frame">
+    <div class="frame-head">(A) FINOPS CORE ENGINE — <b>MỘT APP NESTJS DUY NHẤT · REPOSITORY IN-MEMORY · KHÔNG CẦN PROVISION HẠ TẦNG</b></div>
+
+    <!-- LAYER 1 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">1</span> CONTRACT INGESTION · CONNECTOR/ &nbsp;
+        <span class="badge scope">trong phạm vi: contract + mock</span></div>
+      <div class="grid c3">
+        <div class="card accent">
+          <div class="name">ConnectorAdapter</div>
+          <div class="desc">Contract trừu tượng mọi connector tương lai phải implement: fetchRaw() + mapToFocus()</div>
+          <div class="file">connector/connector-adapter.ts</div>
+        </div>
+        <div class="card">
+          <div class="name">Mock_Connector</div>
+          <div class="desc">Fixture in-memory tất định · không network · impl tham chiếu để test</div>
+          <div class="file">connector/mock-connector.ts</div>
+        </div>
+        <div class="card dim">
+          <div class="name">AWS · Azure · GCP · OpenAI</div>
+          <div class="desc">Connector thật = add-on sau, ghép vào qua cùng contract FOCUS</div>
+          <div class="file">hoãn lại — add-on phase 2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow">↓ raw vendor records → <span class="mono">fetchRaw() → mapToFocus()</span></div>
+
+    <!-- LAYER 2 - CORE -->
+    <div class="layer core">
+      <div class="layer-label"><span class="layer-num">2</span> CORE TẤT ĐỊNH · PHẦN LÕI &nbsp;
+        <span class="badge scope">làm ngay</span></div>
+      <div class="grid c4">
+        <div class="card">
+          <div class="name">ETL Normalizer</div>
+          <div class="desc">Cột vendor → FOCUS 1.4 · pure · gắn sourceRef để truy vết</div>
+          <div class="file">normalization/etl-normalizer.ts</div>
+        </div>
+        <div class="card">
+          <div class="name">Data Quality (fail-closed)</div>
+          <div class="desc">Freshness · Completeness · Consistency (zero-sum theo từng tiền tệ) — tất cả đều chặn</div>
+          <div class="file">data-quality/dq-framework.ts</div>
+        </div>
+        <div class="card">
+          <div class="name">Allocation &amp; Rules Engine</div>
+          <div class="desc">Ưu tiên: tag → account → shared-cost · largest-remainder split · bucket __UNALLOCATED__</div>
+          <div class="file">allocation/allocation-engine.ts</div>
+        </div>
+        <div class="card">
+          <div class="name">Money / Decimal</div>
+          <div class="desc">decimal.js · gom theo từng tiền tệ · chia lẻ đến xu chính xác · không dùng float</div>
+          <div class="file">domain/money.ts</div>
+        </div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">Zero-sum theo tiền tệ</span>
+        <span class="pill on">Không load một phần</span>
+        <span class="pill on">Không có AI trong tính toán</span>
+        <span class="pill on">Output tái lập được</span>
+        <span class="pill on">Restatement có version</span>
+      </div>
+    </div>
+
+    <div class="flow">↓ điều phối theo thứ tự có gate · <span class="mono">fetch → normalize → DQ → persist → allocate</span></div>
+
+    <!-- PIPELINE + PERSISTENCE -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">3</span> ĐIỀU PHỐI + LƯU TRỮ · PIPELINE/ + PERSISTENCE/ &nbsp;
+        <span class="badge scope">trong phạm vi</span></div>
+      <div class="grid c2" style="margin-bottom:12px">
+        <div class="card wide">
+          <div class="name">IngestionPipeline — điều phối có gate</div>
+          <div class="desc">Allocation chỉ chạy trên dữ liệu đã qua DQ và đã persist · dừng fail-closed khi DQ fail · re-ingest = Allocation_Run mới</div>
+          <div class="file">pipeline/ingestion-pipeline.ts · allocation-runner.ts · clock.ts</div>
+        </div>
+        <div class="card wide">
+          <div class="name">AllocationRunner — chạy lại thì thay thế</div>
+          <div class="desc">Đọc ingestion version mới nhất · zero-sum pass thì ghi Allocation_Run mới + audit entry · mismatch thì chỉ rõ tiền tệ, không ghi gì</div>
+          <div class="file">audit: timestamp · ruleSetVersion · runVersion · count</div>
+        </div>
+      </div>
+      <div class="grid c4">
+        <div class="card">
+          <div class="name">FocusNormalizedRepository</div>
+          <div class="desc">Append-only · có ingestion version · → ClickHouse FOCUS_NORMALIZED</div>
+        </div>
+        <div class="card">
+          <div class="name">AllocatedCostRepository</div>
+          <div class="desc">Có Allocation_Run version · → ClickHouse ALLOCATED_COST</div>
+        </div>
+        <div class="card">
+          <div class="name">AllocationRuleRepository</div>
+          <div class="desc">Rule active theo priority · → PostgreSQL ALLOCATION_RULE</div>
+        </div>
+        <div class="card">
+          <div class="name">AllocationAuditRepository</div>
+          <div class="desc">Audit run bất biến · → PostgreSQL audit</div>
+        </div>
+      </div>
+      <div class="footnote" style="margin-top:14px">
+        Binding mặc định = in-memory (không cần hạ tầng). Đường swap: re-bind token sang ClickHouse / PostgreSQL sau — không đổi logic core.
+      </div>
+    </div>
+
+    <!-- DEFERRED -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">4</span> CÁC LAYER HOÃN LẠI · THÊM SAU KHI DỮ LIỆU ĐÁNG TIN &nbsp;
+        <span class="badge defer">ngoài phạm vi đợt này</span></div>
+      <div class="grid c4">
+        <div class="card dim">
+          <div class="name">AI Intelligence</div>
+          <div class="desc">NLQ · Summary · Recommendation — read-only trên dữ liệu đã validate (Phase 3)</div>
+        </div>
+        <div class="card dim">
+          <div class="name">Agent Automation + HITL</div>
+          <div class="desc">Root-cause · auto-remediation (dry-run trước) qua Temporal (Phase 4)</div>
+        </div>
+        <div class="card dim">
+          <div class="name">Dashboard &amp; Budget Alert</div>
+          <div class="desc">Grafana/Metabase · ngưỡng 80/90/100% (Phase 2–3)</div>
+        </div>
+        <div class="card dim">
+          <div class="name">Kafka streaming</div>
+          <div class="desc">Chỉ khi có nhu cầu near-real-time đa nguồn thật — S3 đã replay được</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Principles -->
+    <div style="margin-top:20px">
+      <div class="principle"><span class="dot g"></span><span><b style="color:var(--text)">Data Correctness First</b> — đây là dữ liệu tài chính; bất kỳ DQ hay zero-sum fail nào cũng dừng run trước khi ghi. Không load một phần.</span></div>
+      <div class="principle"><span class="dot b"></span><span><b style="color:var(--text)">Deterministic Allocation</b> — 100% theo rule, tái lập được, audit được. AI không bao giờ là một phần của tính toán chi phí.</span></div>
+      <div class="principle"><span class="dot a"></span><span><b style="color:var(--text)">FOCUS là điểm ghép nối</b> — connector là add-on; core chỉ nói FOCUS 1.4. Viết một lần, chạy cho mọi provider.</span></div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw core"></i> Làm ngay (core)</span>
+      <span><i class="sw in"></i> Trong phạm vi đợt này</span>
+      <span><i class="sw def"></i> Add-on hoãn lại</span>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Kiến trúc phản ánh spec <code>finops-core-engine</code> đã groom (requirements R1–R7, design + 27 correctness property).
+    Phần groom đã tích hợp bản audit HLD độc lập (không dùng AI): unallocated bucket, zero-sum theo từng tiền tệ, largest-remainder split,
+    restatement có version, và hoãn Kafka/Temporal/Agent/real-time.
+  </p>
+
+</div>
+</body>
+</html>

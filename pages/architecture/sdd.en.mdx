@@ -28,60 +28,14 @@ This SDD covers the detailed design of the following functional areas:
 
 Before diving into individual sequence flows, the diagram below shows how the major internal services communicate:
 
-```mermaid
-graph LR
-    subgraph Ingestion
-        CONN["Cloud Connectors\n(AWS/Azure/GCP/OAI)"]
-        ETL["ETL & Normalization\nService"]
-        DQ["Data Quality\nFramework"]
-    end
+<iframe
+  src="/diagrams/sdd-components.en.html"
+  style={{ width: '100%', height: '1550px', border: '1px solid #2a2a2e', borderRadius: '14px', marginTop: '1rem', background: '#0a0a0b' }}
+  title="Service Component Interaction"
+  loading="lazy"
+/>
 
-    subgraph Core
-        ALLOC["Allocation &\nRules Engine"]
-        ANALYTICS["Analytics &\nQuery API (OLAP)"]
-        GOV["Governance &\nAlerting Service"]
-    end
-
-    subgraph Storage
-        S3_RAW[("S3 Raw Zone")]
-        S3_CLEAN[("S3 Clean Zone\nParquet / FOCUS")]
-        CH[("ClickHouse DWH\nFOCUS Schema")]
-        PG[("PostgreSQL\nOLTP Metadata")]
-    end
-
-    subgraph AI
-        AIGW["AI Gateway\n(LiteLLM)"]
-        NLQ["NL Query Service"]
-        SUM["Summary Service"]
-    end
-
-    subgraph Agents
-        ORCH["Agent Orchestrator\n(Temporal)"]
-        DQA["Data Quality Agent"]
-        RCA["Root Cause Agent"]
-        ARA["Auto-Remediation Agent"]
-    end
-
-    subgraph Notification
-        KAFKA["Kafka / SQS\nEvent Bus"]
-        SLACK["Slack / MS Teams"]
-        ITSM["Jira / ServiceNow"]
-    end
-
-    CONN -->|Raw CSV/JSON| S3_RAW
-    S3_RAW --> ETL --> DQ --> S3_CLEAN
-    S3_CLEAN -->|Bulk Load| CH
-    CH --> ALLOC --> CH
-    CH --> ANALYTICS
-    ANALYTICS --> AI
-    AIGW --> NLQ & SUM
-    CH --> GOV --> KAFKA
-    KAFKA --> ORCH
-    ORCH --> DQA & RCA & ARA
-    ARA -->|HITL| SLACK
-    GOV --> SLACK
-    ALLOC <--> PG
-```
+[Open the full-screen diagram](/diagrams/sdd-components.en.html) (new tab recommended).
 
 ---
 

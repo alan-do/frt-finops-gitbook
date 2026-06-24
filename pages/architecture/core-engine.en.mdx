@@ -1,0 +1,34 @@
+import { Callout } from 'nextra/components'
+
+# FinOps Core Engine — Layered Architecture
+
+<Callout type="info" emoji="🎯">
+  Following the CTO checkpoint, the team builds the **deterministic core processing engine first**. Resources/connectors (AWS, Azure, GCP, OpenAI…) plug in later as **FOCUS-based add-ons**. Money is 100% rule-based; AI never touches cost calculation.
+</Callout>
+
+This diagram is intentionally a **defense of the scope decision**: it makes the "build core now, resources as FOCUS add-ons later" story visual. Layers 1–2 are built now; Layers 3–4 (AI, Agent/HITL, dashboards, Kafka) are deferred per the independent HLD audit.
+
+<iframe
+  src="/finops-core-architecture.html"
+  style={{ width: '100%', height: '1850px', border: '1px solid var(--nextra-card-line, #2a2a2e)', borderRadius: '14px', marginTop: '1.5rem', background: '#0a0a0b' }}
+  title="FinOps Core Engine Layered Architecture"
+  loading="lazy"
+/>
+
+<Callout type="default" emoji="🔗">
+  Full-screen view: <a href="/finops-core-architecture.html" target="_blank" rel="noopener noreferrer">open the standalone diagram</a> (opens in a new tab).
+</Callout>
+
+## Why this scope
+
+The core is the deterministic, vendor-agnostic heart of the platform:
+
+- **Connector contract + Mock** — `fetchRaw()` + `mapToFocus()`. The FOCUS standard is the seam; real connectors are add-ons that implement the same contract.
+- **ETL Normalizer** — vendor columns → FOCUS 1.4, pure and traceable.
+- **Data Quality (fail-closed)** — freshness, completeness, and per-currency zero-sum consistency, all equally blocking. No partial loads.
+- **Allocation & Rules Engine** — priority-ordered (tag → account → shared-cost), largest-remainder split (exact penny allocation), `__UNALLOCATED__` bucket for idle/orphan cost, per-currency zero-sum verification. No AI in the calculation.
+- **Versioned persistence** — append-only ingestion versions + Allocation_Run supersede-on-rerun for safe restatement.
+
+The engine runs entirely on in-memory repositories, so none of the deferred infrastructure (Kafka, Temporal, ClickHouse, Postgres) is required to develop, test, or prove correctness. The swap to real stores is a token re-binding with no core logic change.
+
+> The detailed contracts, sequence flows, and 27 correctness properties live in the [`finops-core-engine` spec](/architecture/sdd).

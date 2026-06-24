@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Enterprise FinOps Platform — Kiến trúc Phân lớp</title>
+<link rel="stylesheet" href="/diagram-style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">High Level Design · Kiến trúc 4 Layer</div>
+  <h1 class="title">Enterprise FinOps Platform — Kiến trúc Phân lớp</h1>
+  <p class="subtitle">
+    Một ranh giới cứng tách tính toán tài chính tất định khỏi AI. Tiền được tính từ dưới lên bằng rule;
+    AI chỉ đọc dữ liệu đã chốt ở cuối luồng.
+  </p>
+  <p class="source">
+    Nguồn: <a href="#">/architecture</a> · Stack: NestJS · ClickHouse · PostgreSQL · S3/Parquet · Temporal · LiteLLM
+  </p>
+
+  <div class="frame">
+    <div class="frame-head">ENTERPRISE FINOPS PLATFORM — <b>BỐN LAYER · CORE TẤT ĐỊNH, AI CHỈ ĐỌC Ở TRÊN</b></div>
+
+    <!-- LAYER 4 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">4</span> AGENT AUTOMATION (CÓ HUMAN-IN-THE-LOOP) &nbsp;
+        <span class="badge defer">chỉ đọc / đề xuất</span></div>
+      <div class="grid c4">
+        <div class="card"><div class="name">Agent Orchestrator</div><div class="desc">Temporal · pause/resume chờ HITL duyệt</div></div>
+        <div class="card"><div class="name">Data Quality Agent</div><div class="desc">Điều tra khi DQ fail</div></div>
+        <div class="card"><div class="name">Root Cause Agent</div><div class="desc">Sinh giả thuyết từ log &amp; metric</div></div>
+        <div class="card"><div class="name">Auto-Remediation Agent</div><div class="desc">Chỉ hành động khi đủ confidence + HITL</div></div>
+      </div>
+    </div>
+
+    <div class="flow">▲ chỉ đọc / đề xuất — không bao giờ ghi cost</div>
+
+    <!-- LAYER 3 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">3</span> AI INTELLIGENCE (READ-ONLY) &nbsp;
+        <span class="badge info">API tool định sẵn, không SQL trực tiếp</span></div>
+      <div class="grid c4">
+        <div class="card blue"><div class="name">AI Gateway</div><div class="desc">LiteLLM · route OpenAI/Claude/Gemini</div></div>
+        <div class="card blue"><div class="name">NL Query Service</div><div class="desc">Câu hỏi → API tool scoped, không SQL thô</div></div>
+        <div class="card blue"><div class="name">Recommendation</div><div class="desc">Gợi ý tiết kiệm trên dữ liệu đã validate</div></div>
+        <div class="card blue"><div class="name">Summary Service</div><div class="desc">Báo cáo executive · temperature 0</div></div>
+      </div>
+    </div>
+
+    <div class="flow blue">▲ nhận context JSON đã tổng hợp · AI không nằm trong luồng tính toán</div>
+
+    <!-- LAYER 2 - CORE -->
+    <div class="layer core">
+      <div class="layer-label"><span class="layer-num">2</span> FINOPS CORE PLATFORM · LÕI TẤT ĐỊNH &nbsp;
+        <span class="badge scope">source of truth</span></div>
+      <div class="grid c5">
+        <div class="card"><div class="name">ETL &amp; Normalization</div><div class="desc">Vendor → FOCUS 1.4</div></div>
+        <div class="card"><div class="name">Data Quality Framework</div><div class="desc">Fail-closed · zero-sum</div></div>
+        <div class="card"><div class="name">Allocation Engine</div><div class="desc">Phân bổ theo rule</div></div>
+        <div class="card"><div class="name">Cost Analytics</div><div class="desc">ClickHouse OLAP</div></div>
+        <div class="card"><div class="name">Data Lake</div><div class="desc">S3 / Parquet</div></div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">100% theo rule</span>
+        <span class="pill on">Audit được</span>
+        <span class="pill on">Invariant zero-sum</span>
+        <span class="pill on">Không AI trong tính toán</span>
+      </div>
+    </div>
+
+    <div class="flow">▲ raw data vào · cost đã normalize + allocate ra</div>
+
+    <!-- LAYER 1 -->
+    <div class="layer">
+      <div class="layer-label"><span class="layer-num">1</span> DATA INGESTION &nbsp;
+        <span class="badge info">connector theo chuẩn FOCUS (add-on)</span></div>
+      <div class="grid c4">
+        <div class="card"><div class="name">AWS Connector</div><div class="desc">CUR billing export</div></div>
+        <div class="card"><div class="name">Azure Connector</div><div class="desc">Billing export</div></div>
+        <div class="card"><div class="name">GCP Connector</div><div class="desc">Billing export</div></div>
+        <div class="card"><div class="name">K8s Connector</div><div class="desc">Usage metric cho shared-cost</div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <div class="principle"><span class="dot g"></span><span><b style="color:var(--text)">Data Correctness First</b> — độ chính xác, audit, truy vết ưu tiên hơn khả năng AI. Mọi allocation đều truy vết tất định.</span></div>
+      <div class="principle"><span class="dot a"></span><span><b style="color:var(--text)">AI không được tính cost</b> — Layer 3–4 chỉ đọc. Financial source of truth giữ 100% theo rule ở Layer 2.</span></div>
+      <div class="principle"><span class="dot r"></span><span><b style="color:var(--text)">An toàn agentic</b> — mọi hành động agent đều có confidence score, audit trail, và HITL duyệt khi dưới ngưỡng.</span></div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw core"></i> Core tất định (source of truth)</span>
+      <span><i class="sw blue"></i> AI / read-only</span>
+      <span><i class="sw in"></i> Ingestion &amp; agent</span>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Luồng: <code>Ingest → Parse/Clean → Load Parquet → Rule Engine → ClickHouse → NestJS API → Dashboard</code>.
+    AI nhận "context" ở cuối luồng, không bao giờ ở giữa.
+  </p>
+
+</div>
+</body>
+</html>

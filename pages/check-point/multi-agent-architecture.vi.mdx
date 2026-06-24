@@ -12,57 +12,14 @@ Kiến trúc Multi-Agent cho phép hệ thống hoạt động tự chủ, trong
 
 Dưới đây là mô hình giao tiếp giữa các Agents trong hệ thống FinOps, với trung tâm là FOCUS Data Lake:
 
-```mermaid
-graph TD
-    classDef cloud fill:#f8fafc,stroke:#94a3b8,stroke-width:2px,color:#334155,stroke-dasharray: 5 5
-    classDef agent fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
-    classDef db fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#14532d
-    classDef output fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d
-    classDef core fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#9a3412
+<iframe
+  src="/diagrams/multi-agent.vi.html"
+  style={{ width: '100%', height: '1500px', border: '1px solid #2a2a2e', borderRadius: '14px', marginTop: '1rem', background: '#0a0a0b' }}
+  title="Kiến trúc Multi-Agent trên nền FOCUS"
+  loading="lazy"
+/>
 
-    subgraph External_Sources ["☁️ Data Generators (Multi-Cloud / SaaS)"]
-        AWS["AWS Cost Explorer"]:::cloud
-        Azure["Azure Billing API"]:::cloud
-        OAI["OpenAI Usage API"]:::cloud
-    end
-
-    subgraph Multi_Agent_System ["🤖 Autonomous FinOps Multi-Agent System"]
-        Orchestrator["🧠 Orchestrator / LangChain"]:::core
-        
-        A1["🕵️ Data Ingestion Agent"]:::agent
-        A2["🚨 Anomaly Detection Agent"]:::agent
-        A3["💡 Optimization Analyst Agent"]:::agent
-        A4["🗣️ Reporting Agent"]:::agent
-        
-        Orchestrator -->|Ủy quyền| A1
-        Orchestrator -->|Điều phối| A2
-        Orchestrator -->|Giao việc| A3
-        Orchestrator -->|Tổng hợp| A4
-    end
-
-    subgraph Data_Layer ["🗄️ Standardized Data Layer"]
-        DB[("FOCUS Data Lake <br/> Schema")]:::db
-    end
-
-    subgraph Action_Layer ["⚡ Action & Notification"]
-        Channel["Kênh Nội Bộ / Email"]:::output
-        Remediation["Auto-Remediation"]:::output
-    end
-
-    AWS -->|Raw Billing| A1
-    Azure -->|Raw Billing| A1
-    OAI -->|API Usage| A1
-
-    A1 -->|Transform to FOCUS| DB
-    DB -->|Stream 'BilledCost'| A2
-    DB -->|Query Historical Data| A3
-
-    A2 -->|Alert: Cost Spike!| A4
-    A3 -->|Đề xuất Tối ưu| A4
-
-    A4 -->|Báo cáo Ngôn ngữ tự nhiên| Channel
-    Orchestrator -.->|Actionability| Remediation
-```
+[Mở sơ đồ toàn màn hình](/diagrams/multi-agent.vi.html) (nên mở tab mới).
 
 ## 2. Vai trò của từng Automation Agent trong hệ sinh thái FOCUS
 
