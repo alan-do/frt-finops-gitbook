@@ -1,7 +1,8 @@
 export { locales as middleware } from 'nextra/locales'
 
 export const config = {
-  // Bỏ qua các file static (có đuôi file như .html, .svg), _next, và api
-  // để middleware i18n không rewrite chúng thành /vi/... gây 404.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.).*)']
+  // Chạy locale middleware cho root "/" (để redirect / -> /vi) và mọi route khác,
+  // TRỪ _next, api, và path có dấu "." (file static .html/.svg/.css trong public/).
+  // Root phải khai báo tường minh vì matcher negative-lookahead không match "/".
+  matcher: ['/', '/((?!_next|api|.*\\.).*)']
 }

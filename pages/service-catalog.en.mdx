@@ -1,0 +1,59 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# Service Catalog & FOCUS Mapping
+
+<Callout type="info" emoji="🗂️">
+  This section turns the team's raw FPT Cloud service research into a structured input for the Core Engine: a vendor → FOCUS mapping, a canonical taxonomy for reporting, and the data-quality rules that protect the zero-sum invariant.
+</Callout>
+
+## Source data
+
+The catalog is sourced from the **DataSuite** dashboard (pageId 4975), dimension `dim_service`, which exposes a two-level structure: **CRM Service Group × Service Mapping**.
+
+- **33 groups / 145 services** (2 empty-group junk rows already dropped).
+- The two-level structure maps directly onto FOCUS: `Service Group → ServiceCategory`, `Service Mapping → ServiceName`.
+
+## Why this matters for the Core Engine
+
+This is real input for the deterministic [Allocation Engine](/architecture/core-engine) and the connector's FOCUS mapping. The research also surfaced concrete data-quality issues that validate three design decisions already groomed into the spec:
+
+| Finding in the data | Core Engine safeguard |
+| :--- | :--- |
+| Junk / empty service names (` - CPU`, `Voicebot - `), 2 dropped rows | `__UNALLOCATED__` bucket (keeps zero-sum) |
+| Reversed / duplicated names (`eKYC` both orders, `Model as a Service` doubled) | Match by stable `ResourceId`, not by name |
+| Overlapping taxonomy (Database across 3 groups, Public IP in 2) | Canonical category layer above raw groups |
+| FPT Cloud billed in VND vs LLM APIs in USD | Per-currency zero-sum check |
+
+## Sections
+
+<Cards>
+  <Card title="Full Service List (145)" href="/service-catalog/full-list">
+    The complete catalog of all 145 services across 33 groups, organized by canonical domain.
+  </Card>
+  <Card title="FPT Cloud → FOCUS Mapping" href="/service-catalog/focus-mapping">
+    How each FPT Cloud service group maps to FOCUS columns, and the seed for the connector.
+  </Card>
+  <Card title="Canonical Taxonomy" href="/service-catalog/canonical-taxonomy">
+    Collapsing 33 groups / 145 services into ~8 reporting domains.
+  </Card>
+  <Card title="Data Quality Rules" href="/service-catalog/data-quality-rules">
+    Concrete DQ rules to catch the duplicate, reversed, and empty records found in the data.
+  </Card>
+</Cards>
+
+## Distribution at a glance
+
+The catalog is heavily skewed: the 4 largest groups hold ~34% of all services, while 14 groups have only a single service.
+
+| Group | Services |
+| :--- | :---: |
+| FPT Database | 17 |
+| Compute Service | 14 |
+| Database Service | 10 |
+| FDP - Processing | 9 |
+| FPT Network | 8 |
+| FPT Storage | 8 |
+| Cước viễn thông (Telco) | 7 |
+| Storage Service | 7 |
+| _… 25 more groups_ | 65 |
+| **Total** | **145** |

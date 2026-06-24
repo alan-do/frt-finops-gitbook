@@ -1,0 +1,48 @@
+import { Callout } from 'nextra/components'
+
+# Phân loại Chuẩn hóa (Canonical Taxonomy)
+
+<Callout type="info" emoji="🧭">
+  `dim_service` thô có 33 nhóm với độ chồng chéo cao (Database ở 3 nhóm, Storage ở 2, Load Balancer ở 3). Báo cáo theo nhóm thô làm dashboard phân mảnh. Ta gom chúng về **8 canonical domain** mà cả engineering lẫn finance đều hiểu được.
+</Callout>
+
+## 8 canonical domain
+
+| # | Canonical Domain | Gom các nhóm thô | ~Dịch vụ |
+| :--- | :--- | :--- | :---: |
+| 1 | **Compute** | Compute Service, FPT Cloud Server (CPU/RAM/Disk) | ~20 |
+| 2 | **AI & GPU** | GPU Servers, NCP.AI Infrastructure, NCP.AI Inference | ~14 |
+| 3 | **Database** | FPT Database, Database Service, FPT DB Engine | ~37 |
+| 4 | **Storage** | FPT Storage, Storage Service, Backup Service, Backup Cross Site, FPT Cloud Backup & DR | ~21 |
+| 5 | **Network** | FPT Network, Network Service, FPT Load Balancing, Kênh truyền, Băng thông | ~16 |
+| 6 | **Data Platform (FDP)** | FDP Processing / Lakehouse / Governance / Manage / Metadata | ~30 |
+| 7 | **AI Services (SaaS)** | FPT.AI Voicebot, eKYC, OCR | ~5 |
+| 8 | **Telco & Other** | Cước viễn thông, Phí quản trị, Port TVAN, Devsecops, WAF, Security, Monitoring | ~22 |
+
+## Vì sao cần tầng canonical (không dùng nhóm thô)
+
+Taxonomy thô không nhất quán — cùng một loại năng lực nằm ở nhiều nhóm:
+
+- **Database** rải ở `FPT Database` (17), `Database Service` (10), và `FPT DB Engine`. Không có tầng canonical, muốn tính "tổng chi phí database" thì analyst phải biết cả ba tên.
+- **Object Storage** ở cả `FPT Storage` và `Storage Service`.
+- **Load Balancer** ở `FPT Network`, `Network Service`, và `FPT Load Balancing`.
+- **GPU** rải ở `Compute Service`, `FPT Cloud Server`, và `NCP.AI Infrastructure`.
+
+Tầng canonical category **bên trên** các nhóm thô cho báo cáo ổn định, so sánh được, đồng thời giữ nhóm thô để drill-down/audit.
+
+## Mô hình 2 tầng
+
+```
+Canonical Domain (8)      ← dashboard, budget, roll-up ROI
+   └─ CRM Service Group   ← audit trail thô (33)
+        └─ Service Mapping ← dòng billing (145)
+             └─ pricing_unit (cpu / ram / disk / gpu)
+```
+
+<Callout type="warning" emoji="⚠️">
+  Tầng canonical là **tiện ích báo cáo**, không phải input tính toán. Allocation vẫn chạy trên record thô, tất định — canonical domain chỉ được gắn vào để aggregate. Điều này giữ nguyên nguyên tắc "AI/UX không bao giờ đổi con số".
+</Callout>
+
+## Mapping là tất định và có version
+
+Map group → domain bản thân nó là một rule có version (giống `ALLOCATION_RULE`). Khi FPT Cloud thêm nhóm mới, chỉ map này cập nhật; phần còn lại của pipeline không đổi. Nhóm chưa map rơi xuống `Uncategorized` và được nêu trong [Data Quality Rules](/service-catalog/data-quality-rules), không bao giờ bị âm thầm bỏ.

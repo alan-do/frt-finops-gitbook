@@ -1,0 +1,59 @@
+import { Callout, Cards, Card } from 'nextra/components'
+
+# Service Catalog & FOCUS Mapping
+
+<Callout type="info" emoji="🗂️">
+  Phần này biến dữ liệu research dịch vụ FPT Cloud của team thành input có cấu trúc cho Core Engine: bảng mapping vendor → FOCUS, một canonical taxonomy cho báo cáo, và các quy tắc data-quality bảo vệ invariant zero-sum.
+</Callout>
+
+## Dữ liệu nguồn
+
+Catalog lấy từ dashboard **DataSuite** (pageId 4975), dimension `dim_service`, với cấu trúc 2 tầng: **CRM Service Group × Service Mapping**.
+
+- **33 nhóm / 145 dịch vụ** (đã loại 2 dòng rác nhóm rỗng).
+- Cấu trúc 2 tầng map thẳng vào FOCUS: `Service Group → ServiceCategory`, `Service Mapping → ServiceName`.
+
+## Vì sao quan trọng với Core Engine
+
+Đây là input thật cho [Allocation Engine](/architecture/core-engine) tất định và phần FOCUS mapping của connector. Research cũng phát hiện các vấn đề data-quality cụ thể, validate 3 quyết định đã được groom vào spec:
+
+| Phát hiện trong dữ liệu | Cơ chế bảo vệ trong Core Engine |
+| :--- | :--- |
+| Tên dịch vụ rác/rỗng (` - CPU`, `Voicebot - `), 2 dòng đã bị loại | Bucket `__UNALLOCATED__` (giữ zero-sum) |
+| Tên đảo / trùng (`eKYC` cả 2 chiều, `Model as a Service` lặp) | Match theo `ResourceId` ổn định, không theo tên |
+| Phân loại chồng chéo (Database ở 3 nhóm, Public IP ở 2) | Tầng canonical category trên các nhóm thô |
+| FPT Cloud tính bằng VND vs LLM API bằng USD | Zero-sum check theo từng tiền tệ |
+
+## Các phần
+
+<Cards>
+  <Card title="Danh sách Dịch vụ Đầy đủ (145)" href="/service-catalog/full-list">
+    Toàn bộ catalog 145 dịch vụ thuộc 33 nhóm, sắp xếp theo canonical domain.
+  </Card>
+  <Card title="FPT Cloud → FOCUS Mapping" href="/service-catalog/focus-mapping">
+    Cách mỗi nhóm dịch vụ FPT Cloud map vào cột FOCUS, và seed cho connector.
+  </Card>
+  <Card title="Canonical Taxonomy" href="/service-catalog/canonical-taxonomy">
+    Gom 33 nhóm / 145 dịch vụ về ~8 domain báo cáo.
+  </Card>
+  <Card title="Data Quality Rules" href="/service-catalog/data-quality-rules">
+    Quy tắc DQ cụ thể để bắt các record trùng, đảo, rỗng tìm thấy trong dữ liệu.
+  </Card>
+</Cards>
+
+## Phân bố tổng quan
+
+Catalog lệch mạnh: 4 nhóm lớn nhất chiếm ~34% tổng dịch vụ, trong khi 14 nhóm chỉ có đúng 1 dịch vụ.
+
+| Nhóm | Số dịch vụ |
+| :--- | :---: |
+| FPT Database | 17 |
+| Compute Service | 14 |
+| Database Service | 10 |
+| FDP - Processing | 9 |
+| FPT Network | 8 |
+| FPT Storage | 8 |
+| Cước viễn thông | 7 |
+| Storage Service | 7 |
+| _… 25 nhóm khác_ | 65 |
+| **Tổng** | **145** |

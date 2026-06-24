@@ -1,0 +1,54 @@
+import { Callout } from 'nextra/components'
+
+# Quy tắc Data Quality
+
+<Callout type="error" emoji="🛡️">
+  Research catalog đã lộ ra lỗi thật: tên đảo, mapping trùng, và tên dịch vụ rỗng. Mỗi lỗi map vào một quy tắc DQ cụ thể chạy **trước khi persist** (fail-closed). Các quy tắc này bảo vệ invariant zero-sum theo từng tiền tệ.
+</Callout>
+
+## Các lỗi tìm thấy trong dữ liệu
+
+| # | Lỗi | Ví dụ từ `dim_service` | Rủi ro |
+| :--- | :--- | :--- | :--- |
+| D1 | Cặp tên đảo | `Dịch vụ … - FPT.AI - eKYC` vs `FPT.AI - eKYC - Dịch vụ …` | Double-counting |
+| D2 | Mapping tự lặp | `Model as a Service - Model as a Service`; `Internet Bandwidth - Internet Bandwidth` | Double-counting |
+| D3 | Tên dịch vụ rỗng | `FPT Cloud Monitoring Dedicated`: ` - CPU`, ` - RAM` | Không allocate được |
+| D4 | Giá trị rỗng sau dấu gạch | `Voicebot - ` | Không allocate được |
+| D5 | Cùng dịch vụ ở 2 nhóm | `Public IP` ở cả `FPT Network` và `Network Service` | Allocation mơ hồ |
+| D6 | Dòng rác đã bị loại | "đã loại 2 dòng rác nhóm rỗng" | Mất dữ liệu âm thầm nếu không log |
+
+## Quy tắc DQ (chạy pre-persist, fail-closed)
+
+### DQ-1 · Phát hiện resource trùng
+Trong một billing period, group theo `ResourceId` ổn định. Nếu hai dòng có cùng chữ ký dịch vụ chuẩn hóa (tên đã bỏ prefix nhóm và sort token), gắn cờ **duplicate candidate** (bắt D1, D2). Pipeline dừng; dòng không bị âm thầm cộng dồn.
+
+```
+signature(name) = sortTokens(stripGroupPrefix(name)).join('|')
+"FPT.AI-eKYC-Dịch vụ" và "Dịch vụ-FPT.AI-eKYC" → cùng signature → FLAG
+```
+
+### DQ-2 · Chặn tên rỗng / sai định dạng
+Từ chối dòng nào có `ServiceName` rỗng sau khi trim prefix nhóm và dấu gạch xung quanh (bắt D3, D4). Cost **không bị bỏ** — nó được route về `__UNALLOCATED__` với reason code `EMPTY_SERVICE_NAME`, để vẫn hiển thị và zero-sum được giữ.
+
+### DQ-3 · Tính duy nhất xuyên nhóm
+Một `ResourceId` chỉ được thuộc đúng một canonical domain. Nếu cùng dịch vụ logic (vd `Public IP`) resolve ra hai nhóm, rule mapping ưu tiên cao hơn thắng một cách tất định và conflict được log (bắt D5).
+
+### DQ-4 · Hạch toán dòng bị loại (không mất âm thầm)
+Mọi dòng bị loại khỏi allocation (rác, nhóm rỗng) phải được **đếm và log**, không xóa (bắt D6). Số đếm này feed vào **Completeness check**: `rawRowCount == allocatedRowCount + unallocatedRowCount + loggedDropCount`.
+
+### DQ-5 · Zero-sum theo từng tiền tệ
+Sau allocation, với **mỗi** `BillingCurrency` độc lập: `Σ allocated.BilledCost == Σ source.BilledCost`. FPT Cloud (VND) và LLM API (USD) không bao giờ cộng chung. Lệch ở bất kỳ tiền tệ nào → dừng ghi.
+
+## Map sang spec Core Engine
+
+| Quy tắc DQ ở đây | Yêu cầu Core Engine |
+| :--- | :--- |
+| DQ-1 Phát hiện trùng | Match theo `ResourceId`, không theo tên (Design: id ổn định) |
+| DQ-2 Tên rỗng → bucket | Bucket `__UNALLOCATED__` (Req 5.5) |
+| DQ-3 Duy nhất xuyên nhóm | Rule tất định ưu tiên theo thứ tự (Req 5.1–5.4) |
+| DQ-4 Hạch toán dòng loại | Completeness check (Req 4.4) |
+| DQ-5 Zero-sum theo tiền tệ | Consistency + Zero-sum theo tiền tệ (Req 4.5, 5.10) |
+
+<Callout type="info" emoji="🔗">
+  Các quy tắc này là instance cụ thể cho catalog của [Data Quality Framework](/architecture/core-engine) tổng quát. Framework giữ tính vendor-agnostic; trang này là test fixtures cho add-on FPT Cloud.
+</Callout>

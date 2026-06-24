@@ -1,0 +1,54 @@
+import { Callout } from 'nextra/components'
+
+# Data Quality Rules
+
+<Callout type="error" emoji="🛡️">
+  The catalog research surfaced real defects: reversed names, duplicate mappings, and empty service names. Each maps to a concrete DQ rule that runs **before any persist** (fail-closed). These rules protect the per-currency zero-sum invariant.
+</Callout>
+
+## Defects found in the data
+
+| # | Defect | Example from `dim_service` | Risk |
+| :--- | :--- | :--- | :--- |
+| D1 | Reversed name pairs | `Dịch vụ … - FPT.AI - eKYC` vs `FPT.AI - eKYC - Dịch vụ …` | Double-counting |
+| D2 | Self-duplicated mapping | `Model as a Service - Model as a Service`; `Internet Bandwidth - Internet Bandwidth` | Double-counting |
+| D3 | Empty service name | `FPT Cloud Monitoring Dedicated`: ` - CPU`, ` - RAM` | Unallocatable |
+| D4 | Trailing-dash empty value | `Voicebot - ` | Unallocatable |
+| D5 | Same service in two groups | `Public IP` in both `FPT Network` and `Network Service` | Ambiguous allocation |
+| D6 | Dropped junk rows | "2 empty-group junk rows already dropped" | Silent data loss if not logged |
+
+## DQ rules (run pre-persist, fail-closed)
+
+### DQ-1 · Duplicate resource detection
+For a billing period, group by stable `ResourceId`. If two rows share a normalized service signature (name with group-prefix stripped and tokens sorted), flag as a **duplicate candidate** (catches D1, D2). The pipeline halts; the row is not silently summed.
+
+```
+signature(name) = sortTokens(stripGroupPrefix(name)).join('|')
+"FPT.AI-eKYC-Dịch vụ" and "Dịch vụ-FPT.AI-eKYC" → same signature → FLAG
+```
+
+### DQ-2 · Empty / malformed name guard
+Reject any row whose cleaned `ServiceName` is empty after trimming the group prefix and surrounding dashes (catches D3, D4). The cost is **not dropped** — it is routed to `__UNALLOCATED__` with a reason code `EMPTY_SERVICE_NAME`, so it stays visible and zero-sum holds.
+
+### DQ-3 · Cross-group uniqueness
+A `ResourceId` must belong to exactly one canonical domain. If the same logical service (e.g. `Public IP`) resolves to two groups, the higher-priority mapping rule wins deterministically and the conflict is logged (catches D5).
+
+### DQ-4 · Drop accounting (no silent loss)
+Any row excluded from allocation (junk, empty group) must be **counted and logged**, not deleted (catches D6). The count feeds the **Completeness check**: `rawRowCount == allocatedRowCount + unallocatedRowCount + loggedDropCount`.
+
+### DQ-5 · Per-currency zero-sum
+After allocation, for **each** `BillingCurrency` independently: `Σ allocated.BilledCost == Σ source.BilledCost`. FPT Cloud (VND) and LLM APIs (USD) are never summed together. A mismatch in any currency halts the write.
+
+## How these map to the Core Engine spec
+
+| DQ rule here | Core Engine requirement |
+| :--- | :--- |
+| DQ-1 Duplicate detection | Match by `ResourceId`, not name (Design: stable id) |
+| DQ-2 Empty-name → bucket | `__UNALLOCATED__` bucket (Req 5.5) |
+| DQ-3 Cross-group uniqueness | Priority-ordered deterministic rules (Req 5.1–5.4) |
+| DQ-4 Drop accounting | Completeness check (Req 4.4) |
+| DQ-5 Per-currency zero-sum | Consistency + Zero-sum per currency (Req 4.5, 5.10) |
+
+<Callout type="info" emoji="🔗">
+  These rules are the catalog-specific instances of the generic [Data Quality Framework](/architecture/core-engine). The framework stays vendor-agnostic; this page is the FPT-Cloud add-on's test fixtures.
+</Callout>

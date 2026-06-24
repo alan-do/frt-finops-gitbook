@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinOps — Entity Relationship Diagram (full)</title>
+<link rel="stylesheet" href="/diagram-style.css" />
+<style>
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .btn{font-size:12px;font-weight:600;color:var(--text);background:var(--card);
+    border:1px solid var(--card-line);border-radius:8px;padding:7px 13px;cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.active{background:rgba(224,165,40,.12);border-color:var(--accent);color:var(--accent)}
+  .pane{display:none}
+  .pane.show{display:block}
+  .section-h{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;margin:22px 0 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-tag">Data Model · Entity Relationship Diagram</div>
+  <h1 class="title">FinOps Data Model — Full ERD</h1>
+  <p class="subtitle">
+    Hybrid model: PostgreSQL (OLTP) for rules / budgets / state, ClickHouse (OLAP) for billing.
+    Every attribute is described. Use the buttons to switch view.
+  </p>
+  <p class="source">Source: <a href="#">/architecture/erd</a></p>
+
+  <div class="toolbar">
+    <button class="btn active" data-target="rel">Relationships</button>
+    <button class="btn" data-target="oltp">OLTP · PostgreSQL</button>
+    <button class="btn" data-target="olap">OLAP · ClickHouse</button>
+  </div>
+
+  <!-- ══ RELATIONSHIPS ══ -->
+  <div class="pane show" id="rel">
+
+    <div class="erd-svg-wrap">
+      <svg class="erd-svg" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#6a6a70"/>
+          </marker>
+          <marker id="ahg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#4a8a5f"/>
+          </marker>
+        </defs>
+
+        <!-- Zones -->
+        <rect class="erd-zone" x="15" y="48" width="600" height="575" rx="12"/>
+        <text class="erd-zone-label" x="34" y="74">OLTP · PostgreSQL</text>
+        <rect class="erd-zone" x="635" y="48" width="350" height="575" rx="12"/>
+        <text class="erd-zone-label" x="654" y="74">OLAP · ClickHouse</text>
+
+        <!-- Edges OLTP -->
+        <path class="erd-edge" d="M185,316 C210,200 210,120 235,99" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M185,318 C210,250 215,200 235,194" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M185,322 C205,300 215,290 235,284" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M185,326 C205,345 215,360 235,374" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M185,330 C205,400 210,450 235,469" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M385,284 C470,300 470,420 385,455" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M385,469 C420,490 430,505 438,515" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M385,99 C470,180 470,420 510,505" marker-end="url(#ah)"/>
+        <path class="erd-edge" d="M385,94 L438,94" marker-end="url(#ah)"/>
+
+        <!-- Cross-zone + OLAP edges -->
+        <path class="erd-edge olap" d="M385,189 L718,189" marker-end="url(#ahg)"/>
+        <path class="erd-edge olap" d="M385,369 C560,369 580,360 718,360" marker-end="url(#ahg)"/>
+        <path class="erd-edge olap" d="M795,208 L795,338" marker-end="url(#ahg)"/>
+        <path class="erd-edge olap" d="M795,388 L795,503" marker-end="url(#ahg)"/>
+
+        <!-- Cardinality labels -->
+        <text class="erd-card" x="208" y="150">1·N</text>
+        <text class="erd-card" x="455" y="375">1·N</text>
+        <text class="erd-card" x="455" y="100">1·1</text>
+        <text class="erd-card olap" x="540" y="180">1·N</text>
+        <text class="erd-card olap" x="540" y="350">1·N</text>
+        <text class="erd-card olap" x="800" y="278">1·N</text>
+        <text class="erd-card olap" x="800" y="450">1·N</text>
+
+        <!-- OLTP boxes -->
+        <g class="erd-box hub"><rect x="35" y="300" width="150" height="38" rx="7"/><text x="110" y="324" text-anchor="middle">TEAM</text></g>
+        <g class="erd-box"><rect x="235" y="75" width="150" height="38" rx="7"/><text x="310" y="99" text-anchor="middle">USER</text></g>
+        <g class="erd-box"><rect x="438" y="75" width="150" height="38" rx="7"/><text x="513" y="99" text-anchor="middle">AUDIT_LOG</text></g>
+        <g class="erd-box"><rect x="235" y="170" width="150" height="38" rx="7"/><text x="310" y="194" text-anchor="middle">CLOUD_ACCOUNT</text></g>
+        <g class="erd-box"><rect x="235" y="260" width="150" height="38" rx="7"/><text x="310" y="284" text-anchor="middle">BUDGET</text></g>
+        <g class="erd-box"><rect x="235" y="350" width="150" height="38" rx="7"/><text x="310" y="374" text-anchor="middle">ALLOCATION_RULE</text></g>
+        <g class="erd-box"><rect x="235" y="445" width="150" height="38" rx="7"/><text x="310" y="469" text-anchor="middle">ANOMALY_ALERT</text></g>
+        <g class="erd-box"><rect x="438" y="510" width="150" height="38" rx="7"/><text x="513" y="534" text-anchor="middle">AGENT_ACTION</text></g>
+
+        <!-- OLAP boxes -->
+        <g class="erd-box olap"><rect x="720" y="170" width="150" height="38" rx="7"/><text x="795" y="194" text-anchor="middle">FOCUS_NORMALIZED</text></g>
+        <g class="erd-box olap"><rect x="720" y="340" width="150" height="38" rx="7"/><text x="795" y="364" text-anchor="middle">ALLOCATED_COST</text></g>
+        <g class="erd-box olap"><rect x="720" y="505" width="150" height="38" rx="7"/><text x="795" y="529" text-anchor="middle">COST_DAILY_SUMMARY</text></g>
+      </svg>
+    </div>
+
+    <div class="section-h">OLTP relationships (PostgreSQL)</div>
+    <div class="rel-grid">
+      <div class="rel"><span class="src">TEAM</span><span class="arrow">1 ──&lt; N</span><span class="tgt">CLOUD_ACCOUNT</span><span class="verb">a team owns many cloud accounts</span></div>
+      <div class="rel"><span class="src">TEAM</span><span class="arrow">1 ──&lt; N</span><span class="tgt">BUDGET</span><span class="verb">a team has many budgets (per period)</span></div>
+      <div class="rel"><span class="src">TEAM</span><span class="arrow">1 ──&lt; N</span><span class="tgt">ALLOCATION_RULE</span><span class="verb">a team is the target of many rules</span></div>
+      <div class="rel"><span class="src">TEAM</span><span class="arrow">1 ──&lt; N</span><span class="tgt">USER</span><span class="verb">a team has many member users</span></div>
+      <div class="rel"><span class="src">TEAM</span><span class="arrow">1 ──&lt; N</span><span class="tgt">ANOMALY_ALERT</span><span class="verb">alerts are raised against a team</span></div>
+      <div class="rel"><span class="src">BUDGET</span><span class="arrow">1 ──&lt; N</span><span class="tgt">ANOMALY_ALERT</span><span class="verb">a budget breach triggers alerts</span></div>
+      <div class="rel"><span class="src">ANOMALY_ALERT</span><span class="arrow">1 ── 1</span><span class="tgt">AGENT_ACTION</span><span class="verb">an alert is investigated by an action</span></div>
+      <div class="rel"><span class="src">USER</span><span class="arrow">1 ──&lt; N</span><span class="tgt">AGENT_ACTION</span><span class="verb">a user approves / rejects actions</span></div>
+      <div class="rel"><span class="src">USER</span><span class="arrow">1 ──&lt; N</span><span class="tgt">AUDIT_LOG</span><span class="verb">every change is performed by a user</span></div>
+    </div>
+
+    <div class="section-h">OLAP relationships (ClickHouse)</div>
+    <div class="rel-grid">
+      <div class="rel olap"><span class="src">CLOUD_ACCOUNT</span><span class="arrow">1 ──&lt; N</span><span class="tgt">FOCUS_NORMALIZED</span><span class="verb">an account incurs billing records (via sub_account_id)</span></div>
+      <div class="rel olap"><span class="src">FOCUS_NORMALIZED</span><span class="arrow">1 ──&lt; N</span><span class="tgt">ALLOCATED_COST</span><span class="verb">each raw record generates allocated rows</span></div>
+      <div class="rel olap"><span class="src">ALLOCATION_RULE</span><span class="arrow">1 ──&lt; N</span><span class="tgt">ALLOCATED_COST</span><span class="verb">a rule defines how cost is allocated</span></div>
+      <div class="rel olap"><span class="src">ALLOCATED_COST</span><span class="arrow">1 ──&lt; N</span><span class="tgt">COST_DAILY_SUMMARY</span><span class="verb">allocated rows aggregate into daily rollups</span></div>
+    </div>
+  </div>
+
+  <!-- ══ OLTP ══ -->
+  <div class="pane" id="oltp">
+    <div class="ent-grid">
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">TEAM</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">team_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Unique team identifier</td></tr>
+          <tr><td class="col-name">team_name</td><td class="col-type">string</td><td class="col-desc">Display name of the team</td></tr>
+          <tr><td class="col-name">business_unit</td><td class="col-type">string</td><td class="col-desc">Business unit the team rolls up to</td></tr>
+          <tr><td class="col-name">department</td><td class="col-type">string</td><td class="col-desc">Department / cost center grouping</td></tr>
+          <tr><td class="col-name">slack_channel</td><td class="col-type">string</td><td class="col-desc">Channel for budget alerts</td></tr>
+          <tr><td class="col-name">lead_email</td><td class="col-type">string</td><td class="col-desc">Team lead contact for HITL</td></tr>
+          <tr><td class="col-name">status</td><td class="col-type">enum</td><td class="col-desc">active | inactive</td></tr>
+          <tr><td class="col-name">created_at</td><td class="col-type">timestamp</td><td class="col-desc">Record creation time</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">CLOUD_ACCOUNT</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">account_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Internal account identifier</td></tr>
+          <tr><td class="col-name">sub_account_id</td><td class="col-type">string</td><td class="col-desc">Provider-native ID (AWS AccountId, Azure SubId…)</td></tr>
+          <tr><td class="col-name">provider_name</td><td class="col-type">string</td><td class="col-desc">AWS | Azure | GCP | OpenAI | Anthropic</td></tr>
+          <tr><td class="col-name">team_id<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Owning team → TEAM</td></tr>
+          <tr><td class="col-name">environment</td><td class="col-type">string</td><td class="col-desc">dev | staging | production</td></tr>
+          <tr><td class="col-name">account_alias</td><td class="col-type">string</td><td class="col-desc">Human-friendly alias</td></tr>
+          <tr><td class="col-name">created_at</td><td class="col-type">timestamp</td><td class="col-desc">Record creation time</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">BUDGET</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">budget_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Budget identifier</td></tr>
+          <tr><td class="col-name">team_id<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Team the budget belongs to → TEAM</td></tr>
+          <tr><td class="col-name">billing_period</td><td class="col-type">string</td><td class="col-desc">YYYY-MM the budget applies to</td></tr>
+          <tr><td class="col-name">monthly_limit</td><td class="col-type">decimal</td><td class="col-desc">Approved monthly spend cap</td></tr>
+          <tr><td class="col-name">alert_80_sent</td><td class="col-type">timestamp</td><td class="col-desc">When 80% alert fired (null = not yet)</td></tr>
+          <tr><td class="col-name">alert_90_sent</td><td class="col-type">timestamp</td><td class="col-desc">When 90% alert fired</td></tr>
+          <tr><td class="col-name">alert_100_sent</td><td class="col-type">timestamp</td><td class="col-desc">When 100% alert fired</td></tr>
+          <tr><td class="col-name">created_at</td><td class="col-type">timestamp</td><td class="col-desc">Creation time</td></tr>
+          <tr><td class="col-name">updated_at</td><td class="col-type">timestamp</td><td class="col-desc">Last update time</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">ALLOCATION_RULE</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">rule_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Rule identifier</td></tr>
+          <tr><td class="col-name">rule_type</td><td class="col-type">string</td><td class="col-desc">tag-based | account-based | shared-cost</td></tr>
+          <tr><td class="col-name">priority</td><td class="col-type">int</td><td class="col-desc">Lower number = higher priority (evaluated first)</td></tr>
+          <tr><td class="col-name">match_criteria</td><td class="col-type">jsonb</td><td class="col-desc">{tag_key,tag_value} | {sub_account_id} | {shared_metric}</td></tr>
+          <tr><td class="col-name">target_team_id<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Team the cost is attributed to → TEAM</td></tr>
+          <tr><td class="col-name">split_method</td><td class="col-type">string</td><td class="col-desc">proportional | fixed | equal</td></tr>
+          <tr><td class="col-name">is_active</td><td class="col-type">boolean</td><td class="col-desc">Whether the rule is currently applied</td></tr>
+          <tr><td class="col-name">created_by</td><td class="col-type">uuid</td><td class="col-desc">User who created the rule</td></tr>
+          <tr><td class="col-name">created_at</td><td class="col-type">timestamp</td><td class="col-desc">Creation time</td></tr>
+          <tr><td class="col-name">updated_at</td><td class="col-type">timestamp</td><td class="col-desc">Last update time</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">USER</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">user_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">User identifier</td></tr>
+          <tr><td class="col-name">email</td><td class="col-type">string</td><td class="col-desc">Login email</td></tr>
+          <tr><td class="col-name">name</td><td class="col-type">string</td><td class="col-desc">Full name</td></tr>
+          <tr><td class="col-name">role</td><td class="col-type">enum</td><td class="col-desc">finops_admin | engineer | finance | executive</td></tr>
+          <tr><td class="col-name">team_id<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Team membership → TEAM (nullable for execs)</td></tr>
+          <tr><td class="col-name">sso_subject</td><td class="col-type">string</td><td class="col-desc">Okta / Entra ID subject for SSO</td></tr>
+          <tr><td class="col-name">last_login</td><td class="col-type">timestamp</td><td class="col-desc">Most recent login</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">AGENT_ACTION</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">action_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Action identifier</td></tr>
+          <tr><td class="col-name">action_type</td><td class="col-type">string</td><td class="col-desc">rate-limit | tag-fix | alert-suppress | recommendation</td></tr>
+          <tr><td class="col-name">status</td><td class="col-type">string</td><td class="col-desc">pending_hitl | approved | rejected | executed | failed</td></tr>
+          <tr><td class="col-name">triggered_by_alert<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Source alert → ANOMALY_ALERT</td></tr>
+          <tr><td class="col-name">proposed_action</td><td class="col-type">jsonb</td><td class="col-desc">Structured remediation payload (replayable)</td></tr>
+          <tr><td class="col-name">confidence_score</td><td class="col-type">decimal</td><td class="col-desc">Agent confidence; below threshold ⇒ HITL</td></tr>
+          <tr><td class="col-name">approved_by<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Approving user → USER (nullable)</td></tr>
+          <tr><td class="col-name">rejection_reason</td><td class="col-type">string</td><td class="col-desc">Why it was rejected (nullable)</td></tr>
+          <tr><td class="col-name">created_at</td><td class="col-type">timestamp</td><td class="col-desc">When the action was proposed</td></tr>
+          <tr><td class="col-name">resolved_at</td><td class="col-type">timestamp</td><td class="col-desc">When approved/rejected/executed</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">ANOMALY_ALERT</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">alert_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Alert identifier</td></tr>
+          <tr><td class="col-name">team_id<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Team the spike belongs to → TEAM</td></tr>
+          <tr><td class="col-name">billing_period</td><td class="col-type">string</td><td class="col-desc">Period the anomaly was detected in</td></tr>
+          <tr><td class="col-name">baseline_cost</td><td class="col-type">decimal</td><td class="col-desc">Expected cost (rolling baseline)</td></tr>
+          <tr><td class="col-name">actual_cost</td><td class="col-type">decimal</td><td class="col-desc">Observed cost that triggered the alert</td></tr>
+          <tr><td class="col-name">z_score</td><td class="col-type">decimal</td><td class="col-desc">Statistical deviation from baseline</td></tr>
+          <tr><td class="col-name">top_driver_service</td><td class="col-type">string</td><td class="col-desc">Service category driving the spike</td></tr>
+          <tr><td class="col-name">top_driver_resource</td><td class="col-type">string</td><td class="col-desc">Specific resource driving the spike</td></tr>
+          <tr><td class="col-name">status</td><td class="col-type">string</td><td class="col-desc">open | investigating | resolved | false_positive</td></tr>
+          <tr><td class="col-name">detected_at</td><td class="col-type">timestamp</td><td class="col-desc">When detected</td></tr>
+          <tr><td class="col-name">resolved_at</td><td class="col-type">timestamp</td><td class="col-desc">When resolved</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent">
+        <div class="ent-head"><span class="ent-name">AUDIT_LOG</span><span class="ent-db">PostgreSQL</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">log_id<span class="key pk">PK</span></td><td class="col-type">uuid</td><td class="col-desc">Log entry identifier</td></tr>
+          <tr><td class="col-name">entity_type</td><td class="col-type">string</td><td class="col-desc">allocation_rule | budget | agent_action | user</td></tr>
+          <tr><td class="col-name">entity_id</td><td class="col-type">uuid</td><td class="col-desc">ID of the changed entity</td></tr>
+          <tr><td class="col-name">action</td><td class="col-type">string</td><td class="col-desc">create | update | delete | approve | reject | execute</td></tr>
+          <tr><td class="col-name">performed_by<span class="key fk">FK</span></td><td class="col-type">uuid</td><td class="col-desc">Actor → USER</td></tr>
+          <tr><td class="col-name">before_state</td><td class="col-type">jsonb</td><td class="col-desc">Snapshot before change</td></tr>
+          <tr><td class="col-name">after_state</td><td class="col-type">jsonb</td><td class="col-desc">Snapshot after change</td></tr>
+          <tr><td class="col-name">created_at</td><td class="col-type">timestamp</td><td class="col-desc">When logged (append-only)</td></tr>
+        </tbody></table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ OLAP ══ -->
+  <div class="pane" id="olap">
+    <div class="ent-grid">
+
+      <div class="ent olap">
+        <div class="ent-head"><span class="ent-name">FOCUS_NORMALIZED</span><span class="ent-db">ClickHouse</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">billing_period</td><td class="col-type">string</td><td class="col-desc">YYYY-MM-DD · partition key</td></tr>
+          <tr><td class="col-name">provider_name</td><td class="col-type">string</td><td class="col-desc">FOCUS: ProviderName</td></tr>
+          <tr><td class="col-name">sub_account_id</td><td class="col-type">string</td><td class="col-desc">FOCUS: SubAccountId · links to CLOUD_ACCOUNT</td></tr>
+          <tr><td class="col-name">service_category</td><td class="col-type">string</td><td class="col-desc">FOCUS: ServiceCategory</td></tr>
+          <tr><td class="col-name">service_name</td><td class="col-type">string</td><td class="col-desc">FOCUS: ServiceName</td></tr>
+          <tr><td class="col-name">resource_id</td><td class="col-type">string</td><td class="col-desc">FOCUS: ResourceId</td></tr>
+          <tr><td class="col-name">resource_name</td><td class="col-type">string</td><td class="col-desc">FOCUS: ResourceName</td></tr>
+          <tr><td class="col-name">charge_category</td><td class="col-type">string</td><td class="col-desc">Usage | Tax | Credit</td></tr>
+          <tr><td class="col-name">billed_cost</td><td class="col-type">decimal</td><td class="col-desc">FOCUS: BilledCost (exact decimal)</td></tr>
+          <tr><td class="col-name">effective_cost</td><td class="col-type">decimal</td><td class="col-desc">FOCUS: EffectiveCost (post-discount)</td></tr>
+          <tr><td class="col-name">billing_currency</td><td class="col-type">string</td><td class="col-desc">FOCUS: BillingCurrency (per-currency zero-sum)</td></tr>
+          <tr><td class="col-name">tags</td><td class="col-type">map</td><td class="col-desc">FOCUS: Tags {CostCenter, Owner, Env…}</td></tr>
+          <tr><td class="col-name">region</td><td class="col-type">string</td><td class="col-desc">FOCUS: Region</td></tr>
+          <tr><td class="col-name">s3_source_path</td><td class="col-type">string</td><td class="col-desc">Traceability back to the raw file</td></tr>
+          <tr><td class="col-name">ingested_at</td><td class="col-type">timestamp</td><td class="col-desc">Ingestion version key (append-only)</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent olap">
+        <div class="ent-head"><span class="ent-name">ALLOCATED_COST</span><span class="ent-db">ClickHouse</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">billing_period</td><td class="col-type">string</td><td class="col-desc">Partition key</td></tr>
+          <tr><td class="col-name">sub_account_id</td><td class="col-type">string</td><td class="col-desc">Source sub-account</td></tr>
+          <tr><td class="col-name">provider_name</td><td class="col-type">string</td><td class="col-desc">Source provider</td></tr>
+          <tr><td class="col-name">service_category</td><td class="col-type">string</td><td class="col-desc">Carried from FOCUS record</td></tr>
+          <tr><td class="col-name">service_name</td><td class="col-type">string</td><td class="col-desc">Carried from FOCUS record</td></tr>
+          <tr><td class="col-name">resource_id</td><td class="col-type">string</td><td class="col-desc">Carried from FOCUS record</td></tr>
+          <tr><td class="col-name">billed_cost</td><td class="col-type">decimal</td><td class="col-desc">Allocated portion of BilledCost</td></tr>
+          <tr><td class="col-name">effective_cost</td><td class="col-type">decimal</td><td class="col-desc">Allocated portion of EffectiveCost</td></tr>
+          <tr><td class="col-name">billing_currency</td><td class="col-type">string</td><td class="col-desc">Currency of the allocated amount</td></tr>
+          <tr><td class="col-name">team_id</td><td class="col-type">uuid</td><td class="col-desc">Resolved team (may be __UNALLOCATED__)</td></tr>
+          <tr><td class="col-name">business_unit</td><td class="col-type">string</td><td class="col-desc">Stamped from the team</td></tr>
+          <tr><td class="col-name">environment</td><td class="col-type">string</td><td class="col-desc">dev | staging | production</td></tr>
+          <tr><td class="col-name">allocation_rule_id</td><td class="col-type">uuid</td><td class="col-desc">Which rule allocated this row → ALLOCATION_RULE</td></tr>
+          <tr><td class="col-name">split_method</td><td class="col-type">string</td><td class="col-desc">How the cost was split</td></tr>
+          <tr><td class="col-name">split_ratio</td><td class="col-type">decimal</td><td class="col-desc">Fraction for shared-cost rows (largest-remainder)</td></tr>
+          <tr><td class="col-name">allocated_at</td><td class="col-type">timestamp</td><td class="col-desc">Allocation_Run version timestamp</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="ent olap">
+        <div class="ent-head"><span class="ent-name">COST_DAILY_SUMMARY</span><span class="ent-db">ClickHouse</span></div>
+        <table class="attrs"><thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td class="col-name">summary_date</td><td class="col-type">string</td><td class="col-desc">Partition key (daily rollup)</td></tr>
+          <tr><td class="col-name">team_id</td><td class="col-type">uuid</td><td class="col-desc">Team the rollup belongs to</td></tr>
+          <tr><td class="col-name">provider_name</td><td class="col-type">string</td><td class="col-desc">Provider dimension</td></tr>
+          <tr><td class="col-name">service_category</td><td class="col-type">string</td><td class="col-desc">Service dimension</td></tr>
+          <tr><td class="col-name">environment</td><td class="col-type">string</td><td class="col-desc">Environment dimension</td></tr>
+          <tr><td class="col-name">total_billed_cost</td><td class="col-type">decimal</td><td class="col-desc">Sum of billed_cost for the group</td></tr>
+          <tr><td class="col-name">total_effective_cost</td><td class="col-type">decimal</td><td class="col-desc">Sum of effective_cost for the group</td></tr>
+          <tr><td class="col-name">record_count</td><td class="col-type">int</td><td class="col-desc">Rows aggregated into this summary</td></tr>
+          <tr><td class="col-name">computed_at</td><td class="col-type">timestamp</td><td class="col-desc">When the rollup was materialized</td></tr>
+        </tbody></table>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="footnote">
+    Cross-database join (PostgreSQL ↔ ClickHouse) is done at the application layer (NestJS),
+    linked by <code>team_id</code> and <code>sub_account_id</code>.
+  </p>
+
+</div>
+
+<script>
+  const btns = document.querySelectorAll('.btn[data-target]');
+  btns.forEach((b) => b.addEventListener('click', () => {
+    btns.forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.pane').forEach((p) => p.classList.remove('show'));
+    document.getElementById(b.dataset.target).classList.add('show');
+  }));
+</script>
+</body>
+</html>

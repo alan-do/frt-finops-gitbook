@@ -1,0 +1,48 @@
+import { Callout } from 'nextra/components'
+
+# Canonical Taxonomy
+
+<Callout type="info" emoji="🧭">
+  The raw `dim_service` has 33 groups with heavy overlap (Database in 3 groups, Storage in 2, Load Balancer in 3). Reporting on raw groups fragments the dashboard. We collapse them into **8 canonical domains** that engineering and finance can both reason about.
+</Callout>
+
+## The 8 canonical domains
+
+| # | Canonical Domain | Rolls up these raw groups | ~Services |
+| :--- | :--- | :--- | :---: |
+| 1 | **Compute** | Compute Service, FPT Cloud Server (CPU/RAM/Disk) | ~20 |
+| 2 | **AI & GPU** | GPU Servers, NCP.AI Infrastructure, NCP.AI Inference | ~14 |
+| 3 | **Database** | FPT Database, Database Service, FPT DB Engine | ~37 |
+| 4 | **Storage** | FPT Storage, Storage Service, Backup Service, Backup Cross Site, FPT Cloud Backup & DR | ~21 |
+| 5 | **Network** | FPT Network, Network Service, FPT Load Balancing, Kênh truyền, Băng thông | ~16 |
+| 6 | **Data Platform (FDP)** | FDP Processing / Lakehouse / Governance / Manage / Metadata | ~30 |
+| 7 | **AI Services (SaaS)** | FPT.AI Voicebot, eKYC, OCR | ~5 |
+| 8 | **Telco & Other** | Cước viễn thông, Phí quản trị, Port TVAN, Devsecops, WAF, Security, Monitoring | ~22 |
+
+## Why a canonical layer (not raw groups)
+
+The raw taxonomy is inconsistent — the same capability lives in multiple groups:
+
+- **Database** is split across `FPT Database` (17), `Database Service` (10), and `FPT DB Engine`. Without a canonical layer, "total database spend" requires the analyst to know all three names.
+- **Object Storage** appears in both `FPT Storage` and `Storage Service`.
+- **Load Balancer** appears in `FPT Network`, `Network Service`, and `FPT Load Balancing`.
+- **GPU** is scattered across `Compute Service`, `FPT Cloud Server`, and `NCP.AI Infrastructure`.
+
+A canonical category layer **above** the raw groups gives stable, comparable reporting while preserving the raw group for drill-down/audit.
+
+## Two-level model
+
+```
+Canonical Domain (8)      ← dashboards, budgets, ROI roll-up
+   └─ CRM Service Group   ← raw audit trail (33)
+        └─ Service Mapping ← billing line (145)
+             └─ pricing_unit (cpu / ram / disk / gpu)
+```
+
+<Callout type="warning" emoji="⚠️">
+  The canonical layer is a **reporting convenience**, not a calculation input. Allocation still runs on the raw, deterministic records — the canonical domain is only stamped on for aggregation. This keeps the "AI/UX never changes the numbers" principle intact.
+</Callout>
+
+## Mapping is deterministic and versioned
+
+The group → domain map is itself a versioned rule (like an `ALLOCATION_RULE`). When FPT Cloud adds a new group, only this map updates; the rest of the pipeline is untouched. An unmapped group falls through to `Uncategorized` and is surfaced in the [Data Quality Rules](/service-catalog/data-quality-rules), never silently dropped.

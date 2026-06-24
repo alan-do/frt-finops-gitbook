@@ -8,177 +8,208 @@ import { Callout, Tabs, Tab } from 'nextra/components'
 
 ---
 
-## 1. ERD Tổng quan
+## 1. ERD Tổng quan — Quan hệ
+
+View này chỉ hiển thị các entity và cách chúng liên kết, để cấu trúc quan hệ dễ đọc. Danh sách attribute đầy đủ nằm ở các tab OLTP / OLAP bên dưới.
+
+<Callout type="default" emoji="🔍">
+  Khó đọc trong trang? Mở ERD đầy đủ — nền tối, font lớn, có nút chuyển Quan hệ / OLTP / OLAP.
+</Callout>
+
+<a href="/diagrams/erd.vi.html" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '8px', padding: '10px 18px', background: '#e0a528', color: '#1a1206', fontWeight: 700, fontSize: '14px', borderRadius: '10px', textDecoration: 'none', boxShadow: '0 4px 14px -4px rgba(224,165,40,.5)' }}>⛶ Mở ERD tổng thể ở tab mới</a>
 
 ```mermaid
+%%{init: {'theme':'default', 'er':{'layoutDirection':'TB','entityPadding':18,'fontSize':20}}}%%
 erDiagram
+    TEAM             ||--o{ CLOUD_ACCOUNT    : "sở hữu"
+    TEAM             ||--o{ BUDGET           : "có"
+    TEAM             ||--o{ ALLOCATION_RULE  : "mục tiêu của"
+    TEAM             ||--o{ USER             : "thành viên"
+    TEAM             ||--o{ ANOMALY_ALERT    : "kích hoạt"
 
-    %% ── OLTP: PostgreSQL ──────────────────────────────────────────
+    CLOUD_ACCOUNT    ||--o{ FOCUS_NORMALIZED : "phát sinh"
+    ALLOCATION_RULE  ||--o{ ALLOCATED_COST   : "định nghĩa"
+    FOCUS_NORMALIZED ||--o{ ALLOCATED_COST   : "tạo ra"
 
-    TEAM {
-        uuid    team_id         PK
-        string  team_name
-        string  business_unit
-        string  department
-        string  slack_channel
-        string  lead_email
-        enum    status          "active | inactive"
-        timestamp created_at
-    }
-
-    CLOUD_ACCOUNT {
-        uuid    account_id      PK
-        string  sub_account_id  "ID gốc của Provider (AWS AccountId, Azure SubId…)"
-        string  provider_name   "AWS | Azure | GCP | OpenAI | Anthropic"
-        uuid    team_id         FK
-        string  environment     "dev | staging | production"
-        string  account_alias
-        timestamp created_at
-    }
-
-    BUDGET {
-        uuid      budget_id       PK
-        uuid      team_id         FK
-        string    billing_period  "YYYY-MM"
-        decimal   monthly_limit
-        decimal   alert_80_sent   "null | timestamp"
-        decimal   alert_90_sent
-        decimal   alert_100_sent
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    ALLOCATION_RULE {
-        uuid    rule_id         PK
-        string  rule_type       "tag-based | account-based | shared-cost"
-        int     priority        "Số nhỏ hơn = ưu tiên cao hơn"
-        jsonb   match_criteria  "{tag_key, tag_value} or {sub_account_id} or {shared_metric}"
-        uuid    target_team_id  FK
-        string  split_method    "proportional | fixed | equal"
-        boolean is_active
-        uuid    created_by
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    USER {
-        uuid    user_id         PK
-        string  email
-        string  name
-        enum    role            "finops_admin | engineer | finance | executive"
-        uuid    team_id         FK "nullable — exec không thuộc team cụ thể"
-        string  sso_subject     "Okta / Entra ID sub"
-        timestamp last_login
-    }
-
-    AGENT_ACTION {
-        uuid    action_id           PK
-        string  action_type         "rate-limit | tag-fix | alert-suppress | recommendation"
-        string  status              "pending_hitl | approved | rejected | executed | failed"
-        uuid    triggered_by_alert  FK "→ ANOMALY_ALERT.alert_id"
-        jsonb   proposed_action     "Payload có cấu trúc cho remediation"
-        decimal confidence_score
-        uuid    approved_by         FK "→ USER.user_id, nullable"
-        string  rejection_reason    "nullable"
-        timestamp created_at
-        timestamp resolved_at
-    }
-
-    ANOMALY_ALERT {
-        uuid    alert_id        PK
-        uuid    team_id         FK
-        string  billing_period
-        decimal baseline_cost
-        decimal actual_cost
-        decimal z_score
-        string  top_driver_service
-        string  top_driver_resource
-        string  status          "open | investigating | resolved | false_positive"
-        timestamp detected_at
-        timestamp resolved_at
-    }
-
-    AUDIT_LOG {
-        uuid    log_id          PK
-        string  entity_type     "allocation_rule | budget | agent_action | user"
-        uuid    entity_id
-        string  action          "create | update | delete | approve | reject | execute"
-        uuid    performed_by    FK "→ USER.user_id"
-        jsonb   before_state
-        jsonb   after_state
-        timestamp created_at
-    }
-
-    %% ── OLAP: ClickHouse ──────────────────────────────────────────
-
-    FOCUS_NORMALIZED {
-        string  billing_period          "YYYY-MM-DD (partition key)"
-        string  provider_name           "FOCUS: ProviderName"
-        string  sub_account_id          "FOCUS: SubAccountId"
-        string  service_category        "FOCUS: ServiceCategory"
-        string  service_name            "FOCUS: ServiceName"
-        string  resource_id             "FOCUS: ResourceId"
-        string  resource_name           "FOCUS: ResourceName"
-        string  charge_category         "FOCUS: ChargeCategory (Usage|Tax|Credit)"
-        decimal billed_cost             "FOCUS: BilledCost"
-        decimal effective_cost          "FOCUS: EffectiveCost (sau giảm giá)"
-        string  billing_currency        "FOCUS: BillingCurrency"
-        map     tags                    "FOCUS: Tags {CostCenter, Owner, Env…}"
-        string  region                  "FOCUS: Region"
-        string  s3_source_path          "Truy xuất về file thô"
-        timestamp ingested_at
-    }
-
-    ALLOCATED_COST {
-        string  billing_period          "Partition key"
-        string  sub_account_id
-        string  provider_name
-        string  service_category
-        string  service_name
-        string  resource_id
-        decimal billed_cost
-        decimal effective_cost
-        string  billing_currency
-        uuid    team_id                 "Xác định từ AllocationRule"
-        string  business_unit
-        string  environment             "dev | staging | production"
-        uuid    allocation_rule_id      "Rule nào đã phân bổ bản ghi này"
-        string  split_method
-        decimal split_ratio             "Cho các dòng shared-cost"
-        timestamp allocated_at
-    }
-
-    COST_DAILY_SUMMARY {
-        string  summary_date            "Partition key"
-        uuid    team_id
-        string  provider_name
-        string  service_category
-        string  environment
-        decimal total_billed_cost
-        decimal total_effective_cost
-        int     record_count
-        timestamp computed_at
-    }
-
-    %% ── Relationships ─────────────────────────────────────────────
-
-    TEAM               ||--o{  CLOUD_ACCOUNT     : "sở hữu"
-    TEAM               ||--o{  BUDGET            : "có"
-    TEAM               ||--o{  ALLOCATION_RULE   : "là mục tiêu của"
-    TEAM               ||--o{  USER              : "thành viên"
-    TEAM               ||--o{  ANOMALY_ALERT     : "kích hoạt"
-
-    CLOUD_ACCOUNT      ||--o{  FOCUS_NORMALIZED  : "phát sinh (qua sub_account_id)"
-    ALLOCATION_RULE    ||--o{  ALLOCATED_COST    : "định nghĩa"
-    FOCUS_NORMALIZED   ||--o{  ALLOCATED_COST    : "tạo ra"
-
-    BUDGET             ||--o{  ANOMALY_ALERT     : "vượt ngưỡng kích hoạt"
-    ANOMALY_ALERT      ||--o|  AGENT_ACTION      : "được điều tra bởi"
-    USER               ||--o{  AGENT_ACTION      : "phê duyệt / từ chối"
-
-    AUDIT_LOG          }o--||  USER              : "thực hiện bởi"
-    ALLOCATED_COST     ||--o{  COST_DAILY_SUMMARY: "tổng hợp thành"
+    BUDGET           ||--o{ ANOMALY_ALERT    : "vượt ngưỡng"
+    ANOMALY_ALERT    ||--o| AGENT_ACTION     : "điều tra bởi"
+    USER             ||--o{ AGENT_ACTION     : "phê duyệt"
+    USER             ||--o{ AUDIT_LOG        : "thực hiện bởi"
+    ALLOCATED_COST   ||--o{ COST_DAILY_SUMMARY : "tổng hợp thành"
 ```
+
+> **OLTP (PostgreSQL):** `TEAM`, `CLOUD_ACCOUNT`, `BUDGET`, `ALLOCATION_RULE`, `USER`, `AGENT_ACTION`, `ANOMALY_ALERT`, `AUDIT_LOG` ·
+> **OLAP (ClickHouse):** `FOCUS_NORMALIZED`, `ALLOCATED_COST`, `COST_DAILY_SUMMARY`
+
+---
+
+## 1b. Chi tiết Attribute từng Entity
+
+<Tabs items={['OLTP — PostgreSQL', 'OLAP — ClickHouse']}>
+
+<Tab>
+
+### TEAM
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| team_id | uuid | PK | Định danh team duy nhất |
+| team_name | string | | Tên hiển thị của team |
+| business_unit | string | | Business unit mà team thuộc về |
+| department | string | | Phòng ban / cost center |
+| slack_channel | string | | Channel nhận budget alert |
+| lead_email | string | | Liên hệ team lead cho HITL |
+| status | enum | | active \| inactive |
+| created_at | timestamp | | Thời điểm tạo |
+
+### CLOUD_ACCOUNT
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| account_id | uuid | PK | Định danh account nội bộ |
+| sub_account_id | string | | ID gốc của provider (AWS AccountId, Azure SubId...) |
+| provider_name | string | | AWS \| Azure \| GCP \| OpenAI \| Anthropic |
+| team_id | uuid | FK | Team sở hữu → TEAM |
+| environment | string | | dev \| staging \| production |
+| account_alias | string | | Alias dễ đọc |
+| created_at | timestamp | | Thời điểm tạo |
+
+### BUDGET
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| budget_id | uuid | PK | Định danh budget |
+| team_id | uuid | FK | Team sở hữu budget → TEAM |
+| billing_period | string | | YYYY-MM mà budget áp dụng |
+| monthly_limit | decimal | | Hạn mức chi tiêu tháng đã duyệt |
+| alert_80_sent | timestamp | | Lúc bắn alert 80% (null = chưa) |
+| alert_90_sent | timestamp | | Lúc bắn alert 90% |
+| alert_100_sent | timestamp | | Lúc bắn alert 100% |
+| created_at | timestamp | | Thời điểm tạo |
+| updated_at | timestamp | | Lần cập nhật cuối |
+
+### ALLOCATION_RULE
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| rule_id | uuid | PK | Định danh rule |
+| rule_type | string | | tag-based \| account-based \| shared-cost |
+| priority | int | | Số nhỏ = ưu tiên cao (xét trước) |
+| match_criteria | jsonb | | `{tag_key,tag_value}` / `{sub_account_id}` / `{shared_metric}` |
+| target_team_id | uuid | FK | Team được gán cost → TEAM |
+| split_method | string | | proportional \| fixed \| equal |
+| is_active | boolean | | Rule có đang áp dụng không |
+| created_by | uuid | | User tạo rule |
+| created_at | timestamp | | Thời điểm tạo |
+| updated_at | timestamp | | Lần cập nhật cuối |
+
+### USER
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| user_id | uuid | PK | Định danh user |
+| email | string | | Email đăng nhập |
+| name | string | | Họ tên |
+| role | enum | | finops_admin \| engineer \| finance \| executive |
+| team_id | uuid | FK | Thuộc team → TEAM (nullable cho exec) |
+| sso_subject | string | | Subject Okta / Entra ID cho SSO |
+| last_login | timestamp | | Lần đăng nhập gần nhất |
+
+### AGENT_ACTION
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| action_id | uuid | PK | Định danh action |
+| action_type | string | | rate-limit \| tag-fix \| alert-suppress \| recommendation |
+| status | string | | pending_hitl \| approved \| rejected \| executed \| failed |
+| triggered_by_alert | uuid | FK | Alert nguồn → ANOMALY_ALERT |
+| proposed_action | jsonb | | Payload remediation có cấu trúc (replay được) |
+| confidence_score | decimal | | Độ tin cậy agent; dưới ngưỡng ⇒ HITL |
+| approved_by | uuid | FK | User phê duyệt → USER (nullable) |
+| rejection_reason | string | | Lý do từ chối (nullable) |
+| created_at | timestamp | | Lúc đề xuất action |
+| resolved_at | timestamp | | Lúc duyệt / từ chối / thực thi |
+
+### ANOMALY_ALERT
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| alert_id | uuid | PK | Định danh alert |
+| team_id | uuid | FK | Team có spike → TEAM |
+| billing_period | string | | Kỳ phát hiện bất thường |
+| baseline_cost | decimal | | Cost kỳ vọng (baseline trượt) |
+| actual_cost | decimal | | Cost thực tế kích hoạt alert |
+| z_score | decimal | | Độ lệch thống kê so với baseline |
+| top_driver_service | string | | Service category gây spike |
+| top_driver_resource | string | | Resource cụ thể gây spike |
+| status | string | | open \| investigating \| resolved \| false_positive |
+| detected_at | timestamp | | Lúc phát hiện |
+| resolved_at | timestamp | | Lúc xử lý xong |
+
+### AUDIT_LOG
+| Cột | Kiểu | Khóa | Mô tả |
+| :--- | :--- | :--- | :--- |
+| log_id | uuid | PK | Định danh log entry |
+| entity_type | string | | allocation_rule \| budget \| agent_action \| user |
+| entity_id | uuid | | ID của entity bị thay đổi |
+| action | string | | create \| update \| delete \| approve \| reject \| execute |
+| performed_by | uuid | FK | Người thực hiện → USER |
+| before_state | jsonb | | Snapshot trước thay đổi |
+| after_state | jsonb | | Snapshot sau thay đổi |
+| created_at | timestamp | | Lúc ghi log (append-only) |
+
+</Tab>
+
+<Tab>
+
+### FOCUS_NORMALIZED
+| Cột | Kiểu | Mô tả |
+| :--- | :--- | :--- |
+| billing_period | string | YYYY-MM-DD · partition key |
+| provider_name | string | FOCUS: ProviderName |
+| sub_account_id | string | FOCUS: SubAccountId · liên kết CLOUD_ACCOUNT |
+| service_category | string | FOCUS: ServiceCategory |
+| service_name | string | FOCUS: ServiceName |
+| resource_id | string | FOCUS: ResourceId |
+| resource_name | string | FOCUS: ResourceName |
+| charge_category | string | Usage \| Tax \| Credit |
+| billed_cost | decimal | FOCUS: BilledCost (decimal chính xác) |
+| effective_cost | decimal | FOCUS: EffectiveCost (sau giảm giá) |
+| billing_currency | string | FOCUS: BillingCurrency (zero-sum theo tiền tệ) |
+| tags | map | FOCUS: Tags `{CostCenter, Owner, Env}` |
+| region | string | FOCUS: Region |
+| s3_source_path | string | Truy vết về file raw |
+| ingested_at | timestamp | Ingestion version key (append-only) |
+
+### ALLOCATED_COST
+| Cột | Kiểu | Mô tả |
+| :--- | :--- | :--- |
+| billing_period | string | Partition key |
+| sub_account_id | string | Sub-account nguồn |
+| provider_name | string | Provider nguồn |
+| service_category | string | Mang theo từ FOCUS record |
+| service_name | string | Mang theo từ FOCUS record |
+| resource_id | string | Mang theo từ FOCUS record |
+| billed_cost | decimal | Phần BilledCost đã phân bổ |
+| effective_cost | decimal | Phần EffectiveCost đã phân bổ |
+| billing_currency | string | Tiền tệ của khoản đã phân bổ |
+| team_id | uuid | Team được resolve (có thể là \_\_UNALLOCATED\_\_) |
+| business_unit | string | Gán từ team |
+| environment | string | dev \| staging \| production |
+| allocation_rule_id | uuid | Rule đã phân bổ dòng này → ALLOCATION_RULE |
+| split_method | string | Cách chia cost |
+| split_ratio | decimal | Tỷ lệ cho dòng shared-cost (largest-remainder) |
+| allocated_at | timestamp | Timestamp của Allocation_Run |
+
+### COST_DAILY_SUMMARY
+| Cột | Kiểu | Mô tả |
+| :--- | :--- | :--- |
+| summary_date | string | Partition key (rollup ngày) |
+| team_id | uuid | Team của rollup |
+| provider_name | string | Chiều provider |
+| service_category | string | Chiều service |
+| environment | string | Chiều environment |
+| total_billed_cost | decimal | Tổng billed_cost của nhóm |
+| total_effective_cost | decimal | Tổng effective_cost của nhóm |
+| record_count | int | Số dòng gom vào summary này |
+| computed_at | timestamp | Lúc materialize rollup |
+
+</Tab>
+
+</Tabs>
 
 ---
 

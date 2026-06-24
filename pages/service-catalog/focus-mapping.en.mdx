@@ -1,0 +1,83 @@
+import { Callout } from 'nextra/components'
+
+# FPT Cloud → FOCUS Mapping
+
+<Callout type="warning" emoji="🔑">
+  **Principle:** the connector maps every FPT Cloud row to the FOCUS 1.4 schema by a stable key, never by display name — because the source names are reversed and duplicated (see [Data Quality Rules](/service-catalog/data-quality-rules)).
+</Callout>
+
+## 1. Column mapping
+
+The DataSuite `dim_service` two-level structure maps onto FOCUS columns as follows:
+
+| FOCUS column | Source in FPT Cloud `dim_service` | Notes |
+| :--- | :--- | :--- |
+| `ProviderName` | constant `"FPT Cloud"` | One provider for this connector |
+| `ServiceCategory` | canonical category (derived) | Mapped from CRM Service Group via the [canonical taxonomy](/service-catalog/canonical-taxonomy) |
+| `ServiceName` | Service Mapping (cleaned) | Strip duplicate group prefix; trim trailing `-` |
+| `ResourceId` | DataSuite service id | Stable id — used for matching, NOT the name |
+| `ChargeCategory` | always `Usage` here | Tax/Credit handled by separate invoice lines |
+| `pricing unit` | `CPU` / `RAM` / `Disk-tier` / `GPU-model` suffix | Parsed from the service name tail |
+| `BillingCurrency` | constant `"VND"` | FPT Cloud bills in VND — must not be summed with USD LLM costs |
+
+## 2. Pricing-unit dimension
+
+Most services split into **CPU / RAM / Disk / GPU** lines. The connector parses this suffix into a normalized `pricing_unit` so a single logical service can be re-aggregated:
+
+| Suffix pattern | Normalized `pricing_unit` | Example |
+| :--- | :--- | :--- |
+| `- CPU` | `compute.cpu` | `FPT Database for PostgreSQL - CPU` |
+| `- RAM` | `compute.ram` | `FPT Database for PostgreSQL - RAM` |
+| `- Premium-SSD-NNNN` | `storage.disk.iops_NNNN` | `Disk - Premium-SSD-12000` |
+| `- GPU … <model>` | `compute.gpu.<model>` | `GPU Sever - GPU NVIDIA Tesla A10 24GB` |
+| `- Control plane` | `container.control_plane` | `FPT Managed Kubernetes Engine - Control plane` |
+| (none) | `flat` | `Public IP`, `Internet Bandwidth` |
+
+GPU models seen in the data: `A10 24GB`, `A30 24GB`, `A100-80G`, `H100`. Tracking GPU cost by model is feasible immediately — valuable for AI-project right-sizing and ROI.
+
+## 3. Group → FOCUS ServiceCategory seed
+
+This is the seed table the connector's mapping module consumes. Raw CRM groups collapse into canonical FOCUS service categories:
+
+| CRM Service Group (raw) | FOCUS `ServiceCategory` (canonical) |
+| :--- | :--- |
+| FPT Database · Database Service · FPT DB Engine | `Database` |
+| Compute Service · FPT Cloud Server (CPU/RAM/Disk) | `Compute` |
+| GPU Server · NCP.AI Infrastructure · NCP.AI Inference | `AI & GPU` |
+| FPT Storage · Storage Service · Backup* (3 groups) | `Storage` |
+| FPT Network · Network Service · FPT Load Balancing · Kênh truyền · Băng thông | `Network` |
+| FDP - Processing / Lakehouse / Governance / Manage / Metadata | `Data Platform` |
+| FPT.AI - Voicebot / eKYC / OCR | `AI Services (SaaS)` |
+| Cước viễn thông · Phí quản trị · Port TVAN · Devsecops · WAF · Security · Monitoring | `Telco & Other` |
+
+## 4. Connector seed (TypeScript)
+
+The above becomes a literal map in the connector's `column-mapping.ts`. This is the **add-on** that plugs into the core via the FOCUS contract — the core itself never hard-codes vendor names.
+
+```typescript
+// connector-fpt-cloud/group-to-category.ts
+export const FPT_GROUP_TO_CATEGORY: Record<string, string> = {
+  'FPT Database': 'Database',
+  'Database Service': 'Database',
+  'FPT DB Engine': 'Database',
+  'Compute Service': 'Compute',
+  'FPT Cloud Server': 'Compute',
+  'NCP.AI Infrastructure': 'AI & GPU',
+  'NCP.AI Inference': 'AI & GPU',
+  'FPT Storage': 'Storage',
+  'Storage Service': 'Storage',
+  'Backup Service': 'Storage',
+  'Backup Cross Site': 'Storage',
+  'FPT Cloud Backup & DR': 'Storage',
+  'FPT Network': 'Network',
+  'Network Service': 'Network',
+  'FPT Load Balancing': 'Network',
+  // … FDP-*, FPT.AI-*, Telco/Other
+};
+
+// Fallback: any group not in the map → '__UNALLOCATED__' category,
+// so no cost is silently dropped (preserves per-currency zero-sum).
+export function toFocusCategory(rawGroup: string): string {
+  return FPT_GROUP_TO_CATEGORY[rawGroup.trim()] ?? 'Uncategorized';
+}
+```

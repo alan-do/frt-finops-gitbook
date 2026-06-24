@@ -1,0 +1,83 @@
+import { Callout } from 'nextra/components'
+
+# FPT Cloud → FOCUS Mapping
+
+<Callout type="warning" emoji="🔑">
+  **Nguyên tắc:** connector map mọi dòng FPT Cloud sang schema FOCUS 1.4 theo một khóa ổn định, không bao giờ theo tên hiển thị — vì tên nguồn bị đảo và trùng (xem [Data Quality Rules](/service-catalog/data-quality-rules)).
+</Callout>
+
+## 1. Mapping cột
+
+Cấu trúc 2 tầng của `dim_service` (DataSuite) map vào cột FOCUS như sau:
+
+| Cột FOCUS | Nguồn trong `dim_service` FPT Cloud | Ghi chú |
+| :--- | :--- | :--- |
+| `ProviderName` | hằng `"FPT Cloud"` | Một provider cho connector này |
+| `ServiceCategory` | canonical category (suy ra) | Map từ CRM Service Group qua [canonical taxonomy](/service-catalog/canonical-taxonomy) |
+| `ServiceName` | Service Mapping (đã làm sạch) | Bỏ prefix nhóm trùng; trim dấu `-` cuối |
+| `ResourceId` | service id của DataSuite | Id ổn định — dùng để match, KHÔNG dùng tên |
+| `ChargeCategory` | luôn là `Usage` ở đây | Tax/Credit xử lý ở dòng invoice riêng |
+| `pricing unit` | hậu tố `CPU` / `RAM` / `Disk-tier` / `GPU-model` | Parse từ đuôi tên dịch vụ |
+| `BillingCurrency` | hằng `"VND"` | FPT Cloud tính bằng VND — không được cộng chung với cost USD của LLM |
+
+## 2. Chiều pricing-unit
+
+Phần lớn dịch vụ tách theo dòng **CPU / RAM / Disk / GPU**. Connector parse hậu tố này thành `pricing_unit` chuẩn hóa để một dịch vụ logic có thể gộp lại:
+
+| Mẫu hậu tố | `pricing_unit` chuẩn hóa | Ví dụ |
+| :--- | :--- | :--- |
+| `- CPU` | `compute.cpu` | `FPT Database for PostgreSQL - CPU` |
+| `- RAM` | `compute.ram` | `FPT Database for PostgreSQL - RAM` |
+| `- Premium-SSD-NNNN` | `storage.disk.iops_NNNN` | `Disk - Premium-SSD-12000` |
+| `- GPU … <model>` | `compute.gpu.<model>` | `GPU Sever - GPU NVIDIA Tesla A10 24GB` |
+| `- Control plane` | `container.control_plane` | `FPT Managed Kubernetes Engine - Control plane` |
+| (không có) | `flat` | `Public IP`, `Internet Bandwidth` |
+
+Các model GPU thấy trong dữ liệu: `A10 24GB`, `A30 24GB`, `A100-80G`, `H100`. Tracking GPU cost theo model khả thi ngay — giá trị cho right-sizing dự án AI và ROI.
+
+## 3. Seed Group → FOCUS ServiceCategory
+
+Đây là bảng seed mà module mapping của connector tiêu thụ. CRM group thô gom về canonical FOCUS service category:
+
+| CRM Service Group (thô) | FOCUS `ServiceCategory` (canonical) |
+| :--- | :--- |
+| FPT Database · Database Service · FPT DB Engine | `Database` |
+| Compute Service · FPT Cloud Server (CPU/RAM/Disk) | `Compute` |
+| GPU Server · NCP.AI Infrastructure · NCP.AI Inference | `AI & GPU` |
+| FPT Storage · Storage Service · Backup* (3 nhóm) | `Storage` |
+| FPT Network · Network Service · FPT Load Balancing · Kênh truyền · Băng thông | `Network` |
+| FDP - Processing / Lakehouse / Governance / Manage / Metadata | `Data Platform` |
+| FPT.AI - Voicebot / eKYC / OCR | `AI Services (SaaS)` |
+| Cước viễn thông · Phí quản trị · Port TVAN · Devsecops · WAF · Security · Monitoring | `Telco & Other` |
+
+## 4. Seed cho connector (TypeScript)
+
+Bảng trên trở thành một map literal trong `column-mapping.ts` của connector. Đây là **add-on** ghép vào core qua contract FOCUS — bản thân core không bao giờ hard-code tên vendor.
+
+```typescript
+// connector-fpt-cloud/group-to-category.ts
+export const FPT_GROUP_TO_CATEGORY: Record<string, string> = {
+  'FPT Database': 'Database',
+  'Database Service': 'Database',
+  'FPT DB Engine': 'Database',
+  'Compute Service': 'Compute',
+  'FPT Cloud Server': 'Compute',
+  'NCP.AI Infrastructure': 'AI & GPU',
+  'NCP.AI Inference': 'AI & GPU',
+  'FPT Storage': 'Storage',
+  'Storage Service': 'Storage',
+  'Backup Service': 'Storage',
+  'Backup Cross Site': 'Storage',
+  'FPT Cloud Backup & DR': 'Storage',
+  'FPT Network': 'Network',
+  'Network Service': 'Network',
+  'FPT Load Balancing': 'Network',
+  // … FDP-*, FPT.AI-*, Telco/Other
+};
+
+// Fallback: nhóm nào không có trong map → category 'Uncategorized',
+// để không cost nào bị âm thầm bỏ (giữ zero-sum theo tiền tệ).
+export function toFocusCategory(rawGroup: string): string {
+  return FPT_GROUP_TO_CATEGORY[rawGroup.trim()] ?? 'Uncategorized';
+}
+```

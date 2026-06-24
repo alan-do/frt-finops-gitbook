@@ -8,177 +8,208 @@ import { Callout, Tabs, Tab } from 'nextra/components'
 
 ---
 
-## 1. Full ERD Overview
+## 1. ERD Overview — Relationships
+
+This view shows only the entities and how they relate, so the relationship structure stays readable. Full attribute lists are in the OLTP / OLAP tabs below.
+
+<Callout type="default" emoji="🔍">
+  Hard to read inline? Open the full ERD — dark theme, large font, with toggles for Relationships / OLTP / OLAP.
+</Callout>
+
+<a href="/diagrams/erd.en.html" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '8px', padding: '10px 18px', background: '#e0a528', color: '#1a1206', fontWeight: 700, fontSize: '14px', borderRadius: '10px', textDecoration: 'none', boxShadow: '0 4px 14px -4px rgba(224,165,40,.5)' }}>⛶ Open full ERD in new tab</a>
 
 ```mermaid
+%%{init: {'theme':'default', 'er':{'layoutDirection':'TB','entityPadding':18,'fontSize':20}}}%%
 erDiagram
+    TEAM             ||--o{ CLOUD_ACCOUNT    : "owns"
+    TEAM             ||--o{ BUDGET           : "has"
+    TEAM             ||--o{ ALLOCATION_RULE  : "target of"
+    TEAM             ||--o{ USER             : "members"
+    TEAM             ||--o{ ANOMALY_ALERT    : "triggers"
 
-    %% ── OLTP: PostgreSQL ──────────────────────────────────────────
+    CLOUD_ACCOUNT    ||--o{ FOCUS_NORMALIZED : "incurs"
+    ALLOCATION_RULE  ||--o{ ALLOCATED_COST   : "defines"
+    FOCUS_NORMALIZED ||--o{ ALLOCATED_COST   : "generates"
 
-    TEAM {
-        uuid    team_id         PK
-        string  team_name
-        string  business_unit
-        string  department
-        string  slack_channel
-        string  lead_email
-        enum    status          "active | inactive"
-        timestamp created_at
-    }
-
-    CLOUD_ACCOUNT {
-        uuid    account_id      PK
-        string  sub_account_id  "Provider-native ID (AWS AccountId, Azure SubId…)"
-        string  provider_name   "AWS | Azure | GCP | OpenAI | Anthropic"
-        uuid    team_id         FK
-        string  environment     "dev | staging | production"
-        string  account_alias
-        timestamp created_at
-    }
-
-    BUDGET {
-        uuid      budget_id       PK
-        uuid      team_id         FK
-        string    billing_period  "YYYY-MM"
-        decimal   monthly_limit
-        decimal   alert_80_sent   "null | timestamp"
-        decimal   alert_90_sent
-        decimal   alert_100_sent
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    ALLOCATION_RULE {
-        uuid    rule_id         PK
-        string  rule_type       "tag-based | account-based | shared-cost"
-        int     priority        "Lower = higher priority"
-        jsonb   match_criteria  "{tag_key, tag_value} or {sub_account_id} or {shared_metric}"
-        uuid    target_team_id  FK
-        string  split_method    "proportional | fixed | equal"
-        boolean is_active
-        uuid    created_by
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    USER {
-        uuid    user_id         PK
-        string  email
-        string  name
-        enum    role            "finops_admin | engineer | finance | executive"
-        uuid    team_id         FK "nullable — execs have null"
-        string  sso_subject     "Okta / Entra ID sub"
-        timestamp last_login
-    }
-
-    AGENT_ACTION {
-        uuid    action_id           PK
-        string  action_type         "rate-limit | tag-fix | alert-suppress | recommendation"
-        string  status              "pending_hitl | approved | rejected | executed | failed"
-        uuid    triggered_by_alert  FK "→ ANOMALY_ALERT.alert_id"
-        jsonb   proposed_action     "Structured payload for remediation"
-        decimal confidence_score
-        uuid    approved_by         FK "→ USER.user_id, nullable"
-        string  rejection_reason    "nullable"
-        timestamp created_at
-        timestamp resolved_at
-    }
-
-    ANOMALY_ALERT {
-        uuid    alert_id        PK
-        uuid    team_id         FK
-        string  billing_period
-        decimal baseline_cost
-        decimal actual_cost
-        decimal z_score
-        string  top_driver_service
-        string  top_driver_resource
-        string  status          "open | investigating | resolved | false_positive"
-        timestamp detected_at
-        timestamp resolved_at
-    }
-
-    AUDIT_LOG {
-        uuid    log_id          PK
-        string  entity_type     "allocation_rule | budget | agent_action | user"
-        uuid    entity_id
-        string  action          "create | update | delete | approve | reject | execute"
-        uuid    performed_by    FK "→ USER.user_id"
-        jsonb   before_state
-        jsonb   after_state
-        timestamp created_at
-    }
-
-    %% ── OLAP: ClickHouse ──────────────────────────────────────────
-
-    FOCUS_NORMALIZED {
-        string  billing_period          "YYYY-MM-DD (partition key)"
-        string  provider_name           "FOCUS: ProviderName"
-        string  sub_account_id          "FOCUS: SubAccountId"
-        string  service_category        "FOCUS: ServiceCategory"
-        string  service_name            "FOCUS: ServiceName"
-        string  resource_id             "FOCUS: ResourceId"
-        string  resource_name           "FOCUS: ResourceName"
-        string  charge_category         "FOCUS: ChargeCategory (Usage|Tax|Credit)"
-        decimal billed_cost             "FOCUS: BilledCost"
-        decimal effective_cost          "FOCUS: EffectiveCost (post-discount)"
-        string  billing_currency        "FOCUS: BillingCurrency"
-        map     tags                    "FOCUS: Tags {CostCenter, Owner, Env…}"
-        string  region                  "FOCUS: Region"
-        string  s3_source_path          "Traceability to raw file"
-        timestamp ingested_at
-    }
-
-    ALLOCATED_COST {
-        string  billing_period          "Partition key"
-        string  sub_account_id
-        string  provider_name
-        string  service_category
-        string  service_name
-        string  resource_id
-        decimal billed_cost
-        decimal effective_cost
-        string  billing_currency
-        uuid    team_id                 "Resolved from AllocationRule"
-        string  business_unit
-        string  environment             "dev | staging | production"
-        uuid    allocation_rule_id      "Which rule allocated this record"
-        string  split_method
-        decimal split_ratio             "For shared-cost rows"
-        timestamp allocated_at
-    }
-
-    COST_DAILY_SUMMARY {
-        string  summary_date            "Partition key"
-        uuid    team_id
-        string  provider_name
-        string  service_category
-        string  environment
-        decimal total_billed_cost
-        decimal total_effective_cost
-        int     record_count
-        timestamp computed_at
-    }
-
-    %% ── Relationships ─────────────────────────────────────────────
-
-    TEAM               ||--o{  CLOUD_ACCOUNT     : "owns"
-    TEAM               ||--o{  BUDGET            : "has"
-    TEAM               ||--o{  ALLOCATION_RULE   : "target of"
-    TEAM               ||--o{  USER              : "members"
-    TEAM               ||--o{  ANOMALY_ALERT     : "triggers"
-
-    CLOUD_ACCOUNT      ||--o{  FOCUS_NORMALIZED  : "incurs (via sub_account_id)"
-    ALLOCATION_RULE    ||--o{  ALLOCATED_COST    : "defines"
-    FOCUS_NORMALIZED   ||--o{  ALLOCATED_COST    : "generates"
-
-    BUDGET             ||--o{  ANOMALY_ALERT     : "breach triggers"
-    ANOMALY_ALERT      ||--o|  AGENT_ACTION      : "investigated by"
-    USER               ||--o{  AGENT_ACTION      : "approves / rejects"
-
-    AUDIT_LOG          }o--||  USER              : "performed by"
-    ALLOCATED_COST     ||--o{  COST_DAILY_SUMMARY: "aggregated into"
+    BUDGET           ||--o{ ANOMALY_ALERT    : "breach triggers"
+    ANOMALY_ALERT    ||--o| AGENT_ACTION     : "investigated by"
+    USER             ||--o{ AGENT_ACTION     : "approves"
+    USER             ||--o{ AUDIT_LOG        : "performed by"
+    ALLOCATED_COST   ||--o{ COST_DAILY_SUMMARY : "aggregated into"
 ```
+
+> **OLTP (PostgreSQL):** `TEAM`, `CLOUD_ACCOUNT`, `BUDGET`, `ALLOCATION_RULE`, `USER`, `AGENT_ACTION`, `ANOMALY_ALERT`, `AUDIT_LOG` ·
+> **OLAP (ClickHouse):** `FOCUS_NORMALIZED`, `ALLOCATED_COST`, `COST_DAILY_SUMMARY`
+
+---
+
+## 1b. Entity Attributes (detailed)
+
+<Tabs items={['OLTP — PostgreSQL', 'OLAP — ClickHouse']}>
+
+<Tab>
+
+### TEAM
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| team_id | uuid | PK | Unique team identifier |
+| team_name | string | | Display name of the team |
+| business_unit | string | | Business unit the team rolls up to |
+| department | string | | Department / cost-center grouping |
+| slack_channel | string | | Channel for budget alerts |
+| lead_email | string | | Team lead contact for HITL |
+| status | enum | | active \| inactive |
+| created_at | timestamp | | Record creation time |
+
+### CLOUD_ACCOUNT
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| account_id | uuid | PK | Internal account identifier |
+| sub_account_id | string | | Provider-native ID (AWS AccountId, Azure SubId...) |
+| provider_name | string | | AWS \| Azure \| GCP \| OpenAI \| Anthropic |
+| team_id | uuid | FK | Owning team → TEAM |
+| environment | string | | dev \| staging \| production |
+| account_alias | string | | Human-friendly alias |
+| created_at | timestamp | | Record creation time |
+
+### BUDGET
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| budget_id | uuid | PK | Budget identifier |
+| team_id | uuid | FK | Team the budget belongs to → TEAM |
+| billing_period | string | | YYYY-MM the budget applies to |
+| monthly_limit | decimal | | Approved monthly spend cap |
+| alert_80_sent | timestamp | | When the 80% alert fired (null = not yet) |
+| alert_90_sent | timestamp | | When the 90% alert fired |
+| alert_100_sent | timestamp | | When the 100% alert fired |
+| created_at | timestamp | | Creation time |
+| updated_at | timestamp | | Last update time |
+
+### ALLOCATION_RULE
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| rule_id | uuid | PK | Rule identifier |
+| rule_type | string | | tag-based \| account-based \| shared-cost |
+| priority | int | | Lower number = higher priority (evaluated first) |
+| match_criteria | jsonb | | `{tag_key,tag_value}` / `{sub_account_id}` / `{shared_metric}` |
+| target_team_id | uuid | FK | Team the cost is attributed to → TEAM |
+| split_method | string | | proportional \| fixed \| equal |
+| is_active | boolean | | Whether the rule is currently applied |
+| created_by | uuid | | User who created the rule |
+| created_at | timestamp | | Creation time |
+| updated_at | timestamp | | Last update time |
+
+### USER
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| user_id | uuid | PK | User identifier |
+| email | string | | Login email |
+| name | string | | Full name |
+| role | enum | | finops_admin \| engineer \| finance \| executive |
+| team_id | uuid | FK | Team membership → TEAM (nullable for execs) |
+| sso_subject | string | | Okta / Entra ID subject for SSO |
+| last_login | timestamp | | Most recent login |
+
+### AGENT_ACTION
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| action_id | uuid | PK | Action identifier |
+| action_type | string | | rate-limit \| tag-fix \| alert-suppress \| recommendation |
+| status | string | | pending_hitl \| approved \| rejected \| executed \| failed |
+| triggered_by_alert | uuid | FK | Source alert → ANOMALY_ALERT |
+| proposed_action | jsonb | | Structured remediation payload (replayable) |
+| confidence_score | decimal | | Agent confidence; below threshold ⇒ HITL |
+| approved_by | uuid | FK | Approving user → USER (nullable) |
+| rejection_reason | string | | Why it was rejected (nullable) |
+| created_at | timestamp | | When the action was proposed |
+| resolved_at | timestamp | | When approved / rejected / executed |
+
+### ANOMALY_ALERT
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| alert_id | uuid | PK | Alert identifier |
+| team_id | uuid | FK | Team the spike belongs to → TEAM |
+| billing_period | string | | Period the anomaly was detected in |
+| baseline_cost | decimal | | Expected cost (rolling baseline) |
+| actual_cost | decimal | | Observed cost that triggered the alert |
+| z_score | decimal | | Statistical deviation from baseline |
+| top_driver_service | string | | Service category driving the spike |
+| top_driver_resource | string | | Specific resource driving the spike |
+| status | string | | open \| investigating \| resolved \| false_positive |
+| detected_at | timestamp | | When detected |
+| resolved_at | timestamp | | When resolved |
+
+### AUDIT_LOG
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| log_id | uuid | PK | Log entry identifier |
+| entity_type | string | | allocation_rule \| budget \| agent_action \| user |
+| entity_id | uuid | | ID of the changed entity |
+| action | string | | create \| update \| delete \| approve \| reject \| execute |
+| performed_by | uuid | FK | Actor → USER |
+| before_state | jsonb | | Snapshot before change |
+| after_state | jsonb | | Snapshot after change |
+| created_at | timestamp | | When logged (append-only) |
+
+</Tab>
+
+<Tab>
+
+### FOCUS_NORMALIZED
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| billing_period | string | YYYY-MM-DD · partition key |
+| provider_name | string | FOCUS: ProviderName |
+| sub_account_id | string | FOCUS: SubAccountId · links to CLOUD_ACCOUNT |
+| service_category | string | FOCUS: ServiceCategory |
+| service_name | string | FOCUS: ServiceName |
+| resource_id | string | FOCUS: ResourceId |
+| resource_name | string | FOCUS: ResourceName |
+| charge_category | string | Usage \| Tax \| Credit |
+| billed_cost | decimal | FOCUS: BilledCost (exact decimal) |
+| effective_cost | decimal | FOCUS: EffectiveCost (post-discount) |
+| billing_currency | string | FOCUS: BillingCurrency (per-currency zero-sum) |
+| tags | map | FOCUS: Tags `{CostCenter, Owner, Env}` |
+| region | string | FOCUS: Region |
+| s3_source_path | string | Traceability back to the raw file |
+| ingested_at | timestamp | Ingestion version key (append-only) |
+
+### ALLOCATED_COST
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| billing_period | string | Partition key |
+| sub_account_id | string | Source sub-account |
+| provider_name | string | Source provider |
+| service_category | string | Carried from the FOCUS record |
+| service_name | string | Carried from the FOCUS record |
+| resource_id | string | Carried from the FOCUS record |
+| billed_cost | decimal | Allocated portion of BilledCost |
+| effective_cost | decimal | Allocated portion of EffectiveCost |
+| billing_currency | string | Currency of the allocated amount |
+| team_id | uuid | Resolved team (may be \_\_UNALLOCATED\_\_) |
+| business_unit | string | Stamped from the team |
+| environment | string | dev \| staging \| production |
+| allocation_rule_id | uuid | Which rule allocated this row → ALLOCATION_RULE |
+| split_method | string | How the cost was split |
+| split_ratio | decimal | Fraction for shared-cost rows (largest-remainder) |
+| allocated_at | timestamp | Allocation_Run version timestamp |
+
+### COST_DAILY_SUMMARY
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| summary_date | string | Partition key (daily rollup) |
+| team_id | uuid | Team the rollup belongs to |
+| provider_name | string | Provider dimension |
+| service_category | string | Service dimension |
+| environment | string | Environment dimension |
+| total_billed_cost | decimal | Sum of billed_cost for the group |
+| total_effective_cost | decimal | Sum of effective_cost for the group |
+| record_count | int | Rows aggregated into this summary |
+| computed_at | timestamp | When the rollup was materialized |
+
+</Tab>
+
+</Tabs>
 
 ---
 

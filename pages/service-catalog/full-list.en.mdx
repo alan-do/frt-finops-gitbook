@@ -1,0 +1,273 @@
+import { Callout } from 'nextra/components'
+
+# Full Service List (145)
+
+<Callout type="info" emoji="📋">
+  The complete FPT Cloud service catalog from DataSuite `dim_service` (33 groups / 145 services), grouped under the [8 canonical domains](/service-catalog/canonical-taxonomy). Group prefixes are kept as-is from the source; data-quality flags are noted inline.
+</Callout>
+
+## Summary by canonical domain
+
+| Canonical Domain | Raw groups | Services |
+| :--- | :--- | :---: |
+| Compute | Compute Service, FPT Cloud Server | 20 |
+| AI & GPU | NCP.AI Infrastructure, NCP.AI Inference | 8 |
+| Database | FPT Database, Database Service | 27 |
+| Storage | FPT Storage, Storage Service, Backup Cross Site, Backup Service, FPT Cloud Backup & DR | 21 |
+| Network | FPT Network, Network Service, FPT Load Balancing, Kênh truyền, Băng thông | 16 |
+| Data Platform (FDP) | Processing, Lakehouse, Governance & Security, Manage, Container | 33 |
+| AI Services (SaaS) | FPT.AI Voicebot / eKYC / OCR | 5 |
+| Telco & Other | Cước viễn thông, Monitoring, Devsecops, WAF, Security, Port TVAN, Phí quản trị | 15 |
+| **Total** | **33 groups** | **145** |
+
+---
+
+## 1 · Compute
+
+### Compute Service (14)
+- CPU
+- RAM
+- Disk - Premium-SSD
+- Disk - Premium-SSD-4000
+- Disk - Premium-SSD-6000
+- Disk - Premium-SSD-8000
+- Disk - Premium-SSD-8000-FRT
+- Disk - Premium-SSD-10000
+- Disk - Premium-SSD-12000
+- Disk - Premium-SSD-14000
+- Disk - Premium-SSD-16000
+- Disk - Premium-SSD-20000
+- GPU Server - NVIDIA Tesla A10 24GB
+- GPU Server - NVIDIA Tesla A30 24GB
+
+### FPT Cloud Server (6)
+- CPU
+- RAM
+- CPU - CPU ⚠️ _self-duplicated (D2)_
+- FPT Cloud Dedicated Server
+- FPT GPU Server - FPT GPU A100 - 80G
+- FPT GPU Server - FPT GPU A30 - 24G
+
+---
+
+## 2 · AI & GPU
+
+### NCP.AI Infrastructure (6)
+- 1x GPU H100 (Included CPU, RAM, Block Storage, Public IP)
+- 1x H100 - GPU Virtual Machine
+- GPU Virtual Machine - 1xH100 ⚠️ _duplicate of above (D1)_
+- GPU Container
+- File Storage - High-performance Tier
+- High-performance Storage - File Storage ⚠️ _reversed duplicate (D1)_
+
+### NCP.AI Inference (2)
+- Model as a Service
+- Model as a Service - Model as a Service ⚠️ _self-duplicated (D2)_
+
+---
+
+## 3 · Database
+
+### FPT Database (17)
+- Backup Database
+- FPT Database for Kafka - CPU
+- FPT Database for Kafka - RAM
+- FPT Database for MSSQL - CPU
+- FPT Database for MSSQL - RAM
+- FPT Database for MariaDB - CPU
+- FPT Database for MariaDB - RAM
+- FPT Database for MongoDB - CPU
+- FPT Database for MongoDB - RAM
+- FPT Database for Open search - CPU
+- FPT Database for Open search - RAM
+- FPT Database for PostgreSQL - CPU
+- FPT Database for PostgreSQL - RAM
+- FPT Database for Redis - CPU
+- FPT Database for Redis - RAM
+- FPT Database for Timescale DB - CPU
+- FPT Database for Timescale DB - RAM
+
+### Database Service (10)
+- FPT DB Engine cho Mongo DB - CPU
+- FPT DB Engine cho Mongo DB - RAM
+- FPT DB Engine cho PostgreSQL - CPU
+- FPT DB Engine cho PostgreSQL - RAM
+- FPT DB Engine cho Redis - CPU
+- FPT DB Engine cho Redis - RAM
+- FPT DB Engine cho mySQL - CPU
+- FPT DB Engine cho mySQL - RAM
+- FPT Database for RabbitMQ - CPU
+- FPT Database for RabbitMQ - RAM
+
+---
+
+## 4 · Storage
+
+### FPT Storage (8)
+- FPT Block Storage - Premium-SSD-6000
+- FPT Block Storage - Premium-SSD-30000
+- FPT Block Storage - Premium-SSD-40000
+- Premium-SSD-10000 - FPT Block Storage
+- FPT Object Storage - Storage capacity - Hot
+- FPT Object Storage - Storage capacity - Hot (S3) - Cloudian
+- FPT Object Storage - Traffic out - Hot
+- FPT Object Storage - Traffic out - Cold - Cloudian
+
+### Storage Service (7)
+- Object Storage - Storage capacity - Hot (S3) - Ceph
+- Object Storage - Storage capacity - Hot (S3) - Cloudian
+- Object Storage - Storage capacity - Cold (S3) - Ceph
+- Object Storage - Storage capacity - Cold (S3) - Cloudian
+- Object Storage - Traffic out - Hot
+- Object Storage - Traffic out - Hot - Ceph
+- Object Storage - Traffic out - Cold - Ceph
+
+### Backup Cross Site (2)
+- Backup Cross Site - Agent
+- Backup Cross Site - Storage
+
+### Backup Service (2)
+- Veeam Backup - Agent
+- Veeam Backup - Storage
+
+### FPT Cloud Backup & DR (2)
+- FPT Backup - Backup Veeam Agent
+- FPT Backup - Backup Veeam Storage
+
+---
+
+## 5 · Network
+
+### FPT Network (8)
+- FPT Load Balancing v2 - Basic-1
+- FPT Load Balancing v2 - Standard
+- FPT Load Balancing v2 - Advanced
+- FPT Load Balancing v2 - Premium
+- Internet Bandwidth
+- Internet Bandwidth - Internet Bandwidth ⚠️ _self-duplicated (D2)_
+- Public IP ⚠️ _also in Network Service (D5)_
+- NCP - Public IP
+
+### Network Service (5)
+- Classic Load Balancer - Standard
+- Classic Load Balancer - Extra-1
+- Classic Load Balancer - Extra-2
+- Classic Load Balancer - Premium
+- Public IP ⚠️ _also in FPT Network (D5)_
+
+### FPT Load Balancing (1)
+- FPT Load Balancing - AVI
+
+### Kênh truyền (1)
+- Kênh truyền X-Connect
+
+### Băng thông (1)
+- Băng thông trong nước 1 Gbps
+
+---
+
+## 6 · Data Platform (FDP)
+
+### FDP - Processing (9)
+- Orchestration - Airflow - CPU
+- Orchestration - Airflow - RAM
+- Orchestration - Airflow - Premium-SSD-4000
+- Processing - Jupyter Hub - CPU
+- Processing - Jupyter Hub - RAM
+- Processing - Jupyter Hub - Premium-SSD-4000
+- Processing - Spark - CPU
+- Processing - Spark - RAM
+- Processing - Spark - Premium-SSD-4000
+
+### FDP - Lakehouse Analytics (6)
+- Metastore - Hive - CPU
+- Metastore - Hive - RAM
+- Metastore - Hive - Premium-SSD-4000
+- Query engine - Trino - CPU
+- Query engine - Trino - RAM
+- Query engine - Trino - Premium-SSD-4000
+
+### FDP - Governance & Security (6)
+- Metadata - OpenMetadata - CPU
+- Metadata - OpenMetadata - RAM
+- Metadata - OpenMetadata - Premium-SSD-4000
+- Security - Ranger - CPU
+- Security - Ranger - RAM
+- Security - Ranger - Premium-SSD-4000
+
+### FDP - Manage service (3)
+- Base service - CPU
+- Base service - RAM
+- Base service - Premium-SSD-4000
+
+### Container Service (4)
+- Dedicated K8S - CPU
+- Dedicated K8S - RAM
+- K8S Managed - CPU
+- K8S Managed - RAM
+
+### FPT Container (3)
+- FPT Managed Kubernetes Engine - CPU
+- FPT Managed Kubernetes Engine - RAM
+- FPT Managed Kubernetes Engine - Control plane
+
+### FPT Database for RabbitMQ (in Database Service)
+_See Database section_
+
+---
+
+## 7 · AI Services (SaaS)
+
+### FPT.AI - Voicebot (2)
+- Voicebot - ⚠️ _empty value (D4)_
+- Voicebot - Cước trả sau dịch vụ Voicebot
+
+### FPT.AI - eKYC (2)
+- Dịch vụ Định danh khách hàng trực tuyến - FPT.AI - eKYC
+- FPT.AI - eKYC - Dịch vụ Định danh khách hàng trực tuyến ⚠️ _reversed duplicate (D1)_
+
+### FPT.AI - OCR (1)
+- Dịch vụ Nhận diện và Trích xuất dữ liệu từ ảnh và văn bản - FPT.AI - OCR
+
+---
+
+## 8 · Telco & Other
+
+### Cước viễn thông (7)
+- Cố định - Phí duy trì
+- Di động - Cước nội mạng Mobifone
+- Di động - Cước ngoại mạng Mobifone
+- Di động - Cước nội mạng Viettel
+- Di động - Cước ngoại mạng Viettel
+- Voice Brandname - Cước ngoại mạng Mobifone
+- Voice Brandname - Phí duy trì
+
+### FPT Cloud Monitoring Dedicated (4)
+- ` - CPU` ⚠️ _empty service name (D3)_
+- ` - RAM` ⚠️ _empty service name (D3)_
+- ` - Premium-SSD` ⚠️ _empty service name (D3)_
+- ` - Premium-SSD-8000` ⚠️ _empty service name (D3)_
+
+### FPT Cloud Monitoring (1)
+- FPT Cloud Monitoring Dedicated
+
+### FPT Devsecops (1)
+- FPT Key Vault - Standard (100 trans/s)
+
+### FPT Cloud WAF (1)
+- FPT Cloud WAF Wapples - Business
+
+### FPT Security (1)
+- Firewall Fortinet - FW ENT License
+
+### Phí port đấu nối trực tiếp ... kênh TVAN (1)
+- Phí port đấu nối trực tiếp trong hạ tầng FPT Cloud kênh TVAN
+
+### Phí quản trị hạ tầng (1)
+- Phí quản trị hạ tầng
+
+---
+
+<Callout type="warning" emoji="🛡️">
+  Rows marked ⚠️ are data-quality flags (D1–D5) detailed in [Data Quality Rules](/service-catalog/data-quality-rules). They are surfaced here, never silently dropped — empty-name rows route to `__UNALLOCATED__`, duplicates are matched by `ResourceId`.
+</Callout>
