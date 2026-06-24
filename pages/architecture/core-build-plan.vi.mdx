@@ -1,0 +1,128 @@
+import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+
+# Kế hoạch Dựng Core
+
+<Callout type="info" emoji="🧭">
+  Kế hoạch này dựa trên **FOCUS specification chính thức** ([focus.finops.org](https://focus.finops.org/focus-columns/)). Nó định nghĩa cách dựng FinOps Core Engine tất định trước, connector vendor ghép vào sau dưới dạng add-on theo FOCUS.
+</Callout>
+
+## 1. FOCUS spec chính thức cho ta biết điều gì
+
+Đọc FOCUS Column Library (65 cột, 14 nhóm) đã chỉnh lại vài giả định trong thiết kế trước:
+
+| Phát hiện từ FOCUS chính thức | Tác động lên thiết kế |
+| :--- | :--- |
+| FOCUS có nhóm **Allocation** native (`AllocatedMethodId`, `AllocatedTags`…) | Ngừng tự đặt tên field — align `ALLOCATED_COST` theo cột chính thức |
+| `PricingUnit`, `ConsumedQuantity`, `ConsumedUnit` là cột native | "pricing_unit" tự chế của ta map vào đây — không tái phát minh |
+| Nhóm `Service` có **3** cột, gồm `ServiceSubcategory` | Canonical 8-domain = `ServiceCategory`; nhóm FPT thô = `ServiceSubcategory` |
+| Timeframe tách `ChargePeriod*` + `BillingPeriod*` | Cần granularity cấp charge, không phải một field period đơn |
+| Đa số provider export ở **v1.2**, không phải 1.4 (AWS/Azure/GCP) | Target **1.2 làm baseline bắt buộc**, cột 1.4 optional |
+| **FPT Cloud KHÔNG có native FOCUS export** | Connector phải transform 100% + qua conformance check |
+
+<Callout type="warning" emoji="🔴">
+  Điểm quan trọng nhất để báo techlead: **FPT Cloud không nằm trong danh sách data-generator của FOCUS.** Khác AWS/Azure/GCP (export FOCUS trực tiếp), connector FPT của ta tự làm toàn bộ transform vendor → FOCUS. Đây chính là lý do connector adapter + bảng mapping là bắt buộc, không phải tùy chọn.
+</Callout>
+
+## 2. Tóm tắt giải pháp
+
+<Steps>
+
+### Lấy FOCUS 1.2 làm baseline bắt buộc
+Mọi type của core dùng tên cột FOCUS 1.2 chính thức. Cột chỉ-có-ở-1.4 để nullable. Khớp với cái provider thực sự export hôm nay, tránh over-fit vào version chưa vendor nào emit đầy đủ.
+
+### Align data model theo cột chính thức
+`FocusRecord` và `AllocatedRecord` dùng tên FOCUS thật (`ServiceCategory`/`ServiceSubcategory`, `PricingUnit`/`ConsumedQuantity`/`ConsumedUnit`, `ChargePeriodStart/End`, `AllocatedMethodId`/`AllocatedTags`).
+
+### Gate mọi record bằng FOCUS conformance check
+Vì FPT Cloud do ta transform, output ETL được validate theo bộ cột bắt buộc FOCUS 1.2 (presence + datatype) **trước khi** Data Quality chạy. Fail-closed.
+
+### Giữ nguyên tắc tất định + fail-closed
+Không AI trong tính toán, zero-sum theo tiền tệ, bucket `__UNALLOCATED__`, largest-remainder split — không đổi. Align FOCUS là bổ sung, không phải viết lại.
+
+</Steps>
+
+## 3. Kế hoạch dựng (4 sprint · ~1.5 FTE)
+
+<Tabs items={['Sprint 0–1', 'Sprint 2–3', 'Sprint 4']}>
+
+<Tab>
+
+### Sprint 0 · Foundation (3–4 ngày)
+- Scaffold NestJS + `decimal.js` + `fast-check` (Jest).
+- Định nghĩa `FocusRecord` từ **cột bắt buộc FOCUS 1.2** (tên chính thức); cột 1.4 nullable.
+- Money helpers: `toDecimal`, `sumDecimal`, `withinTolerance`, `largestRemainderSplit`, `groupByCurrency`.
+
+### Sprint 1 · Ingestion + Mapping (1 tuần)
+- Interface `ConnectorAdapter` (`fetchRaw` / `mapToFocus`) + `MockConnector`.
+- FPT Cloud mapping: 33 nhóm → 8 `ServiceCategory` + nhóm thô là `ServiceSubcategory` (đã có seed).
+- ETL Normalizer; parse `PricingUnit` / `ConsumedUnit` từ đuôi tên dịch vụ.
+- **FOCUS conformance validator** (presence + datatype bắt buộc 1.2).
+
+</Tab>
+
+<Tab>
+
+### Sprint 2 · Data Quality, fail-closed (1 tuần)
+- Ba check: Freshness · Completeness · Consistency (theo tiền tệ).
+- Năm DQ rule cụ thể (D1–D6) từ research catalog — bắt trùng/đảo/rỗng.
+- Bucket `__UNALLOCATED__` + drop accounting (không mất âm thầm).
+
+### Sprint 3 · Allocation Engine (1.5 tuần)
+- Rule ưu tiên theo thứ tự: tag → account → shared-cost.
+- Output align cột FOCUS Allocation (`AllocatedMethodId`, `AllocatedTags`…).
+- Zero-sum theo tiền tệ + audit log + restatement (ingestion version + Allocation_Run).
+
+</Tab>
+
+<Tab>
+
+### Sprint 4 · Integration + Eval (3–4 ngày)
+- Pipeline orchestration: fetch → normalize → **conformance** → DQ → persist → allocate (có gate).
+- 27 property test (fast-check, ≥100 iteration).
+- Chạy FOCUS conformance trên mock FPT dataset.
+
+### Done =
+- Mock billing FPT chảy end-to-end thành allocated cost đúng chuẩn FOCUS.
+- Zero-sum giữ theo tiền tệ; dòng lỗi hiện trong `__UNALLOCATED__`, không bị bỏ.
+- Đường swap đã chứng minh: in-memory repo → ClickHouse/Postgres bằng re-bind token.
+
+</Tab>
+
+</Tabs>
+
+## 4. Cần techlead chốt
+
+<Callout type="error" emoji="🚧">
+  Ba blocker cần confirm trước Sprint 0:
+</Callout>
+
+| # | Quyết định | Đề xuất |
+| :--- | :--- | :--- |
+| 1 | Target **FOCUS 1.2 hay 1.4**? | **1.2 baseline bắt buộc**, cột 1.4 optional/nullable |
+| 2 | Có **`ResourceId` ổn định** từ DataSuite, hay chỉ có tên? | Cần id ổn định — tên bị đảo/trùng, không an toàn để match |
+| 3 | **Đa tiền tệ**: tách VND/USD hay quy đổi? | Tách riêng; zero-sum chạy theo từng tiền tệ. Quy đổi chỉ cho roll-up exec |
+
+## 5. Vì sao cách này giảm rủi ro
+
+- **FOCUS là điểm ghép nối** — viết engine một lần theo FOCUS, mọi provider tương lai chỉ là connector mới.
+- **Conformance gate** bắt lỗi transform của chính ta trước khi nó làm sai dữ liệu tiền.
+- **Không cần provision hạ tầng** cho core — chứng minh tính đúng trên in-memory repo, store thật swap vào sau.
+- Khớp với bản audit HLD độc lập: hoãn Kafka/Temporal/Agent/real-time; ship phần core 80% giá trị trước.
+
+## 6. Phạm vi thực dụng cho 1.5 FTE
+
+<Callout type="warning" emoji="✂️">
+  Một lần tự review đã cắt 3 chỗ kế hoạch ban đầu tham vọng quá mức so với quy mô team. Phần lõi chính xác tài chính giữ nguyên; chỉ hoãn các mục "chưa cần ngay".
+</Callout>
+
+| Điều chỉnh | Ban đầu | Quyết định thực dụng |
+| :--- | :--- | :--- |
+| Property test | 27 property ngay từ đầu | fast-check chỉ cho **4 invariant sống còn** (zero-sum, tổng split chính xác, determinism, fail-closed); còn lại dùng unit test thường với fixture |
+| Dùng NestJS | Full app structure | **Tối giản**: chỉ `@Injectable` + module + DI; chưa controller/guard cho tới khi có API |
+| Observability | OTel + Prometheus + Pino từ Sprint 0 | Chỉ structured logging giờ; OTel khi thật sự deploy |
+| ClickHouse | Chốt cứng | **Đo volume thật trước** — Postgres + partition có thể đủ; repository interface giữ quyết định này hoãn được |
+| DX tooling (Husky/commitlint) | Tính vào lõi | Thêm sau trong một buổi; không phải dependency của tính đúng đắn |
+
+Single source of truth cho contract chi tiết vẫn là spec tại `.kiro/specs/finops-core-engine`. Xem trang [Tech Stack](/architecture/tech-stack) cho danh sách công nghệ đầy đủ và lý do chọn.
+
+> Chi tiết đầy đủ: [Kiến trúc Core Engine](/architecture/core-engine) · [Tech Stack](/architecture/tech-stack) · [Service Catalog & FOCUS mapping](/service-catalog).

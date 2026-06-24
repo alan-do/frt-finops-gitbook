@@ -1,0 +1,92 @@
+import { Callout, Tabs, Tab } from 'nextra/components'
+
+# Tech Stack
+
+<Callout type="info" emoji="🧰">
+  Technology choices for the FinOps Core Engine, selected on two criteria: **financial correctness** and **easy to apply for a 1.5-FTE team**. Anything that doesn't serve those two now is deferred.
+</Callout>
+
+## Selection criteria
+
+1. **Financial correctness first** — exact decimal math, deterministic output, strong types.
+2. **Low operational cost** — no infra to provision for the core; in-memory first.
+3. **Easy to adopt** — team already knows it, or learning curve is small.
+
+## Tiered adoption
+
+| Tier | Technology | When |
+| :--- | :--- | :--- |
+| 🟢 **Sprint 0 (mandatory)** | Node.js LTS, TypeScript (strict), NestJS (minimal), decimal.js, Zod, Jest | Now |
+| 🟡 **Inside the core** | Repository pattern, MockConnector, fast-check (4 invariants), structured logging | Sprint 1–3 |
+| 🔵 **Swap-in later** | ClickHouse / PostgreSQL, Parquet readers, HTTP connectors (axios/undici) | After core is proven |
+| ⚪ **Deferred** | Kafka, Temporal, AI Gateway (LiteLLM), OpenTelemetry, Kubernetes, Terraform, Husky/commitlint | Phase 3–4 |
+
+---
+
+## Core stack & rationale
+
+<Tabs items={['Runtime & Framework', 'Money & Validation', 'Testing', 'Persistence', 'Connector & Ops']}>
+
+<Tab>
+
+### Node.js · TypeScript (strict) · NestJS
+- **Node + TS**: HLD standard, shared with other AI teams. Strict mode is mandatory — wrong types = wrong money.
+- **NestJS, used minimally**: chosen for **Dependency Injection**, the key to "in-memory first, swap DB later" (repositories are provider tokens). We use only `@Injectable` + modules — **no controllers/guards** until there is an HTTP API. Full web structure would be over-kill for a pure computation engine.
+
+</Tab>
+
+<Tab>
+
+### decimal.js · Zod
+- **decimal.js**: JavaScript `number` is IEEE-754 float (`0.1 + 0.2 ≠ 0.3`). Accumulated error across millions of billing rows breaks zero-sum. decimal.js gives exact arithmetic — a hard requirement, not a nicety. (`big.js` is lighter but fewer ops; `dinero.js` is heavier and opinionated.)
+- **Largest-remainder split**: ~30 lines, written in-house. No dependency worth adding; full control over deterministic tie-breaking so property tests can verify it.
+- **Zod**: validates **runtime data** (billing files, FOCUS conformance), not HTTP DTOs — so it fits better than NestJS's default class-validator. One Zod schema is the single source of truth for FOCUS 1.2 mandatory columns: it both validates and infers the TS type. If an API is added later, use `nestjs-zod` to keep one validation system, not two.
+
+</Tab>
+
+<Tab>
+
+### Jest · fast-check (scoped)
+- **Jest**: standard runner; unit + integration tests.
+- **fast-check (property-based)**: unit tests check "input A → output B"; money has infinite combinations. Property tests assert invariants like "for **any** records + rules, Σ allocated == Σ source (per currency)". fast-check generates hundreds of random inputs (incl. negatives, zero, odd currencies) to try to break them.
+- **Pragmatic scope**: property testing has a real learning curve. We require fast-check for the **4 critical invariants only** — zero-sum, exact split-sum, determinism, fail-closed. The rest are plain unit tests with fixtures. The full 27-property set is the ideal target, not the MVP gate.
+
+</Tab>
+
+<Tab>
+
+### Repository pattern → ClickHouse / PostgreSQL (later)
+- **In-memory repositories first**: the whole pipeline runs and tests with **zero infra**. Deterministic logic doesn't depend on a specific DB. This directly answers the HLD-audit risk of standing up 12 systems before delivering value.
+- **Swap path designed in**: change a NestJS provider binding to point at a real store — no core logic change.
+- **ClickHouse vs PostgreSQL — not locked yet**: ClickHouse (columnar) wins for OLAP group-bys over millions of rows. But **measure real volume first** — if it's only a few million rows/month, partitioned PostgreSQL may suffice and drops us from two DBs to one. The repository interface keeps this decision deferrable.
+
+</Tab>
+
+<Tab>
+
+### Connector · Logging
+- **ConnectorAdapter (abstract) + MockConnector**: FPT Cloud has no native FOCUS export, so a transform layer is mandatory. The mock lets us build and test the **entire engine before getting access to real billing** — removing the "waiting for access" bottleneck the CTO review flagged.
+- **Real connectors (later)**: axios/undici for HTTP, csv-parse for AWS CUR, exponential backoff + jitter for rate limits.
+- **Structured logging now, OpenTelemetry later**: the in-memory core has no traffic to trace. Use Pino-style structured logs at first; wire OTel only when deploying. OTel stays vendor-neutral so Datadog/Grafana attach later without lock-in.
+
+</Tab>
+
+</Tabs>
+
+## Honest trade-offs (self-review)
+
+<Callout type="warning" emoji="⚖️">
+  Three places the first draft was over-ambitious for 1.5 FTE — corrected here:
+</Callout>
+
+- **27 property tests up front** → scoped to 4 critical invariants; expand over time.
+- **Observability at Sprint 0** → deferred until deploy; structured logs are enough now.
+- **ClickHouse locked in** → measure volume first; Postgres may be enough. Deferred via the repository interface.
+
+What is **not** negotiable: decimal money, TypeScript strict, deterministic allocation, fail-closed DQ, per-currency zero-sum.
+
+## What we explicitly do NOT use yet
+
+Kafka · Temporal · LiteLLM / LangGraph · OpenTelemetry collector · Kubernetes · Terraform · Husky/commitlint. All are Phase 3–4 or DX-only, deferred per the HLD audit to avoid operational drag before the core proves value.
+
+> Related: [Core Build Plan](/architecture/core-build-plan) · [Core Engine architecture](/architecture/core-engine).

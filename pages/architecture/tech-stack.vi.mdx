@@ -1,0 +1,92 @@
+import { Callout, Tabs, Tab } from 'nextra/components'
+
+# Tech Stack
+
+<Callout type="info" emoji="🧰">
+  Lựa chọn công nghệ cho FinOps Core Engine, dựa trên 2 tiêu chí: **chính xác tài chính** và **dễ apply cho team 1.5 FTE**. Cái gì chưa phục vụ 2 mục tiêu này thì hoãn.
+</Callout>
+
+## Tiêu chí lựa chọn
+
+1. **Chính xác tài chính trước** — số thập phân chính xác, output tất định, type mạnh.
+2. **Chi phí vận hành thấp** — core không cần provision hạ tầng; in-memory trước.
+3. **Dễ adopt** — team đã biết, hoặc learning curve nhỏ.
+
+## Phân tầng adoption
+
+| Tier | Công nghệ | Khi nào |
+| :--- | :--- | :--- |
+| 🟢 **Sprint 0 (bắt buộc)** | Node.js LTS, TypeScript (strict), NestJS (tối giản), decimal.js, Zod, Jest | Ngay |
+| 🟡 **Trong core** | Repository pattern, MockConnector, fast-check (4 invariant), structured logging | Sprint 1–3 |
+| 🔵 **Swap vào sau** | ClickHouse / PostgreSQL, Parquet reader, HTTP connector (axios/undici) | Sau khi core xong |
+| ⚪ **Hoãn** | Kafka, Temporal, AI Gateway (LiteLLM), OpenTelemetry, Kubernetes, Terraform, Husky/commitlint | Phase 3–4 |
+
+---
+
+## Stack lõi & lý do
+
+<Tabs items={['Runtime & Framework', 'Money & Validation', 'Testing', 'Persistence', 'Connector & Ops']}>
+
+<Tab>
+
+### Node.js · TypeScript (strict) · NestJS
+- **Node + TS**: chuẩn HLD, đồng bộ với các team AI khác. Strict mode bắt buộc — sai type = sai tiền.
+- **NestJS, dùng tối giản**: chọn vì **Dependency Injection**, chìa khóa cho "in-memory trước, swap DB sau" (repository là provider token). Chỉ dùng `@Injectable` + module — **chưa controller/guard** cho tới khi có HTTP API. Full web structure là thừa cho một engine thuần tính toán.
+
+</Tab>
+
+<Tab>
+
+### decimal.js · Zod
+- **decimal.js**: `number` của JavaScript là float IEEE-754 (`0.1 + 0.2 ≠ 0.3`). Sai số tích lũy qua hàng triệu dòng billing → vỡ zero-sum. decimal.js cho phép tính chính xác — yêu cầu cứng, không phải tùy chọn. (`big.js` nhẹ hơn nhưng ít hàm; `dinero.js` nặng và opinionated.)
+- **Largest-remainder split**: ~30 dòng, tự viết. Không dependency nào đáng thêm; kiểm soát hoàn toàn tie-break tất định để property test verify được.
+- **Zod**: validate **dữ liệu runtime** (file billing, FOCUS conformance), không phải DTO HTTP — nên hợp hơn class-validator mặc định của NestJS. Một Zod schema là single source of truth cho cột bắt buộc FOCUS 1.2: vừa validate vừa infer TS type. Nếu sau thêm API, dùng `nestjs-zod` để giữ một hệ validation, không phải hai.
+
+</Tab>
+
+<Tab>
+
+### Jest · fast-check (giới hạn scope)
+- **Jest**: runner chuẩn; unit + integration test.
+- **fast-check (property-based)**: unit test kiểm "input A → output B"; tiền có vô số tổ hợp. Property test khẳng định bất biến như "với **mọi** record + rule, Σ allocated == Σ source (theo tiền tệ)". fast-check sinh hàng trăm input ngẫu nhiên (kể cả số âm, 0, currency lạ) để cố phá vỡ.
+- **Phạm vi thực dụng**: property testing có learning curve thật. Bắt buộc fast-check chỉ cho **4 invariant sống còn** — zero-sum, tổng split chính xác, determinism, fail-closed. Còn lại là unit test thường với fixture. Bộ 27 property đầy đủ là mục tiêu lý tưởng, không phải cổng MVP.
+
+</Tab>
+
+<Tab>
+
+### Repository pattern → ClickHouse / PostgreSQL (sau)
+- **In-memory repository trước**: toàn bộ pipeline chạy và test với **zero hạ tầng**. Logic tất định không phụ thuộc DB cụ thể. Đây trả lời trực tiếp rủi ro của audit HLD: dựng 12 hệ thống trước khi ra giá trị.
+- **Đường swap thiết kế sẵn**: đổi binding provider NestJS trỏ sang store thật — không đụng logic core.
+- **ClickHouse vs PostgreSQL — chưa chốt**: ClickHouse (columnar) thắng cho OLAP group-by hàng triệu dòng. Nhưng **đo volume thật trước** — nếu chỉ vài triệu dòng/tháng, PostgreSQL có partition có thể đủ, giảm từ hai DB xuống một. Repository interface giữ quyết định này hoãn được.
+
+</Tab>
+
+<Tab>
+
+### Connector · Logging
+- **ConnectorAdapter (abstract) + MockConnector**: FPT Cloud không có native FOCUS export, nên tầng transform là bắt buộc. Mock cho phép build và test **toàn bộ engine trước khi có quyền truy cập billing thật** — gỡ nút thắt "chờ access" mà CTO review nêu.
+- **Connector thật (sau)**: axios/undici cho HTTP, csv-parse cho AWS CUR, exponential backoff + jitter cho rate limit.
+- **Structured logging giờ, OpenTelemetry sau**: core in-memory chưa có traffic để trace. Dùng structured log kiểu Pino trước; gắn OTel khi deploy. OTel giữ vendor-neutral nên sau gắn Datadog/Grafana đều được, không khóa.
+
+</Tab>
+
+</Tabs>
+
+## Trade-off trung thực (tự review)
+
+<Callout type="warning" emoji="⚖️">
+  Ba chỗ bản nháp đầu tham vọng quá mức cho 1.5 FTE — đã chỉnh ở đây:
+</Callout>
+
+- **27 property test ngay từ đầu** → giới hạn còn 4 invariant sống còn; mở rộng dần.
+- **Observability ở Sprint 0** → hoãn tới khi deploy; structured log là đủ giờ.
+- **Chốt cứng ClickHouse** → đo volume trước; Postgres có thể đủ. Hoãn được qua repository interface.
+
+Cái **không** thương lượng: tiền dạng decimal, TypeScript strict, allocation tất định, DQ fail-closed, zero-sum theo tiền tệ.
+
+## Cái dứt khoát CHƯA dùng
+
+Kafka · Temporal · LiteLLM / LangGraph · OpenTelemetry collector · Kubernetes · Terraform · Husky/commitlint. Tất cả là Phase 3–4 hoặc chỉ DX, hoãn theo audit HLD để tránh sa lầy vận hành trước khi core chứng minh giá trị.
+
+> Liên quan: [Kế hoạch Dựng Core](/architecture/core-build-plan) · [Kiến trúc Core Engine](/architecture/core-engine).

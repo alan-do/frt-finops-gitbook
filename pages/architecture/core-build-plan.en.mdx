@@ -1,0 +1,128 @@
+import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+
+# Core Build Plan
+
+<Callout type="info" emoji="🧭">
+  This plan is grounded in the **official FOCUS specification** ([focus.finops.org](https://focus.finops.org/focus-columns/)). It defines how we build the deterministic FinOps Core Engine first, with vendor connectors plugging in later as FOCUS-based add-ons.
+</Callout>
+
+## 1. What the official FOCUS spec told us
+
+Reading the FOCUS Column Library (65 columns, 14 groups) corrected several assumptions in our earlier design:
+
+| Finding from official FOCUS | Impact on our design |
+| :--- | :--- |
+| FOCUS has a native **Allocation** group (`AllocatedMethodId`, `AllocatedTags`…) | Stop inventing field names — align `ALLOCATED_COST` to official columns |
+| `PricingUnit`, `ConsumedQuantity`, `ConsumedUnit` are native columns | Our hand-rolled "pricing_unit" maps to these — don't reinvent |
+| `Service` group has **3** columns incl. `ServiceSubcategory` | Canonical 8-domain = `ServiceCategory`; raw FPT group = `ServiceSubcategory` |
+| Timeframe splits into `ChargePeriod*` + `BillingPeriod*` | Need charge-level granularity, not a single period field |
+| Most provider exports are **v1.2**, not 1.4 (AWS/Azure/GCP) | Target **1.2 as mandatory baseline**, 1.4 columns optional |
+| **FPT Cloud has NO native FOCUS export** | Its connector must transform 100% + pass a conformance check |
+
+<Callout type="warning" emoji="🔴">
+  The most important point for the techlead: **FPT Cloud is not on the FOCUS data-generator list.** Unlike AWS/Azure/GCP (which export FOCUS directly), our FPT connector does the full vendor → FOCUS transform ourselves. This is exactly why the connector adapter + mapping table are mandatory, not optional.
+</Callout>
+
+## 2. Solution summary
+
+<Steps>
+
+### Adopt FOCUS 1.2 as the mandatory baseline
+All core types use official FOCUS 1.2 column names. 1.4-only columns are nullable. This matches what providers actually export today and avoids over-fitting to a spec version no vendor fully emits yet.
+
+### Align the data model to official columns
+`FocusRecord` and `AllocatedRecord` use real FOCUS names (`ServiceCategory`/`ServiceSubcategory`, `PricingUnit`/`ConsumedQuantity`/`ConsumedUnit`, `ChargePeriodStart/End`, `AllocatedMethodId`/`AllocatedTags`).
+
+### Gate every record with a FOCUS conformance check
+Because FPT Cloud is transformed by us, the ETL output is validated against the FOCUS 1.2 mandatory column set (presence + datatype) **before** Data Quality runs. Fail-closed.
+
+### Keep the deterministic + fail-closed principles
+No AI in calculation, per-currency zero-sum, `__UNALLOCATED__` bucket, largest-remainder split — unchanged. FOCUS alignment is additive, not a rewrite.
+
+</Steps>
+
+## 3. Build plan (4 sprints · ~1.5 FTE)
+
+<Tabs items={['Sprint 0–1', 'Sprint 2–3', 'Sprint 4']}>
+
+<Tab>
+
+### Sprint 0 · Foundation (3–4 days)
+- Scaffold NestJS + `decimal.js` + `fast-check` (Jest).
+- Define `FocusRecord` from **FOCUS 1.2 mandatory columns** (official names); 1.4 columns nullable.
+- Money helpers: `toDecimal`, `sumDecimal`, `withinTolerance`, `largestRemainderSplit`, `groupByCurrency`.
+
+### Sprint 1 · Ingestion + Mapping (1 week)
+- `ConnectorAdapter` interface (`fetchRaw` / `mapToFocus`) + `MockConnector`.
+- FPT Cloud mapping: 33 groups → 8 `ServiceCategory` + raw group as `ServiceSubcategory` (seed table ready).
+- ETL Normalizer; parse `PricingUnit` / `ConsumedUnit` from service-name tail.
+- **FOCUS conformance validator** (1.2 mandatory presence + datatype).
+
+</Tab>
+
+<Tab>
+
+### Sprint 2 · Data Quality, fail-closed (1 week)
+- Three checks: Freshness · Completeness · Consistency (per-currency).
+- Five concrete DQ rules (D1–D6) from the catalog research — duplicate/reversed/empty detection.
+- `__UNALLOCATED__` bucket + drop accounting (no silent loss).
+
+### Sprint 3 · Allocation Engine (1.5 weeks)
+- Priority-ordered rules: tag → account → shared-cost.
+- Output aligned to FOCUS Allocation columns (`AllocatedMethodId`, `AllocatedTags`…).
+- Per-currency zero-sum verify + audit log + restatement (ingestion version + Allocation_Run).
+
+</Tab>
+
+<Tab>
+
+### Sprint 4 · Integration + Eval (3–4 days)
+- Pipeline orchestration: fetch → normalize → **conformance** → DQ → persist → allocate (gated).
+- 27 property-based tests (fast-check, ≥100 iterations).
+- FOCUS conformance run on mock FPT dataset.
+
+### Done = 
+- Mock FPT billing flows end-to-end into FOCUS-conformant allocated cost.
+- Zero-sum holds per currency; bad rows visible in `__UNALLOCATED__`, never dropped.
+- Swap path proven: in-memory repos → ClickHouse/Postgres by re-binding tokens.
+
+</Tab>
+
+</Tabs>
+
+## 4. Decisions needed from the techlead
+
+<Callout type="error" emoji="🚧">
+  Three blockers to confirm before Sprint 0:
+</Callout>
+
+| # | Decision | Recommendation |
+| :--- | :--- | :--- |
+| 1 | Target **FOCUS 1.2 or 1.4**? | **1.2 mandatory baseline**, 1.4 columns optional/nullable |
+| 2 | Is there a **stable `ResourceId`** from DataSuite, or only names? | Need a stable id — names are reversed/duplicated, unsafe to match on |
+| 3 | **Multi-currency**: keep VND/USD separate or convert? | Keep separate; zero-sum runs per currency. Conversion only for exec roll-up |
+
+## 5. Why this de-risks the project
+
+- **FOCUS is the seam** — write the engine once against FOCUS, every future provider is just a new connector.
+- **Conformance gate** catches our own transform mistakes before they corrupt cost data.
+- **No infra to provision** for the core — proves correctness on in-memory repos, real stores swap in later.
+- Aligns with the independent HLD audit: defer Kafka/Temporal/Agent/real-time; ship the 80%-value core first.
+
+## 6. Pragmatic scope for 1.5 FTE
+
+<Callout type="warning" emoji="✂️">
+  A self-review trimmed three places where the original plan was over-ambitious for the team size. The financial-correctness core is untouched; only the "nice-to-have-now" items are deferred.
+</Callout>
+
+| Adjustment | Original | Pragmatic decision |
+| :--- | :--- | :--- |
+| Property tests | 27 properties up front | fast-check only for the **4 critical invariants** (zero-sum, split-sum-exact, determinism, fail-closed); rest as plain unit tests with fixtures |
+| NestJS usage | Full app structure | **Minimal**: `@Injectable` + modules + DI only; no controllers/guards until an API exists |
+| Observability | OTel + Prometheus + Pino at Sprint 0 | Structured logging only now; OTel when we actually deploy |
+| ClickHouse | Locked in | **Measure real volume first** — Postgres with partitioning may suffice; the repository interface keeps this decision deferrable |
+| DX tooling (Husky/commitlint) | Counted as core | Add later in one sitting; not a correctness dependency |
+
+The single source of truth for the deep contracts remains the spec at `.kiro/specs/finops-core-engine`. See the [Tech Stack](/architecture/tech-stack) page for the full technology list and rationale.
+
+> Full detail: [Core Engine architecture](/architecture/core-engine) · [Tech Stack](/architecture/tech-stack) · [Service Catalog & FOCUS mapping](/service-catalog).

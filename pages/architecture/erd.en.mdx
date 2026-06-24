@@ -158,19 +158,28 @@ erDiagram
 ### FOCUS_NORMALIZED
 | Column | Type | Description |
 | :--- | :--- | :--- |
-| billing_period | string | YYYY-MM-DD · partition key |
+| billing_period | string | YYYY-MM · partition key, derived from BillingPeriodStart |
+| charge_period_start | timestamp | FOCUS: ChargePeriodStart (charge-level granularity) |
+| charge_period_end | timestamp | FOCUS: ChargePeriodEnd |
+| billing_period_start | timestamp | FOCUS: BillingPeriodStart |
+| billing_period_end | timestamp | FOCUS: BillingPeriodEnd |
 | provider_name | string | FOCUS: ProviderName |
 | sub_account_id | string | FOCUS: SubAccountId · links to CLOUD_ACCOUNT |
-| service_category | string | FOCUS: ServiceCategory |
+| service_category | string | FOCUS: ServiceCategory (canonical service domain) |
+| service_subcategory | string | FOCUS: ServiceSubcategory (raw FPT/provider group) |
 | service_name | string | FOCUS: ServiceName |
 | resource_id | string | FOCUS: ResourceId |
 | resource_name | string | FOCUS: ResourceName |
-| charge_category | string | Usage \| Tax \| Credit |
+| charge_category | string | FOCUS: ChargeCategory · Usage \| Tax \| Credit |
 | billed_cost | decimal | FOCUS: BilledCost (exact decimal) |
 | effective_cost | decimal | FOCUS: EffectiveCost (post-discount) |
 | billing_currency | string | FOCUS: BillingCurrency (per-currency zero-sum) |
+| consumed_quantity | decimal | FOCUS: ConsumedQuantity |
+| consumed_unit | string | FOCUS: ConsumedUnit |
+| pricing_unit | string | FOCUS: PricingUnit |
 | tags | map | FOCUS: Tags `{CostCenter, Owner, Env}` |
-| region | string | FOCUS: Region |
+| region_id | string | FOCUS: RegionId |
+| region_name | string | FOCUS: RegionName |
 | s3_source_path | string | Traceability back to the raw file |
 | ingested_at | timestamp | Ingestion version key (append-only) |
 
@@ -181,6 +190,7 @@ erDiagram
 | sub_account_id | string | Source sub-account |
 | provider_name | string | Source provider |
 | service_category | string | Carried from the FOCUS record |
+| service_subcategory | string | Carried from the FOCUS record |
 | service_name | string | Carried from the FOCUS record |
 | resource_id | string | Carried from the FOCUS record |
 | billed_cost | decimal | Allocated portion of BilledCost |
@@ -189,9 +199,10 @@ erDiagram
 | team_id | uuid | Resolved team (may be \_\_UNALLOCATED\_\_) |
 | business_unit | string | Stamped from the team |
 | environment | string | dev \| staging \| production |
-| allocation_rule_id | uuid | Which rule allocated this row → ALLOCATION_RULE |
-| split_method | string | How the cost was split |
-| split_ratio | decimal | Fraction for shared-cost rows (largest-remainder) |
+| allocated_method_id | string | FOCUS: AllocatedMethodId · applied rule id / rule type |
+| allocated_method_details | string | FOCUS: AllocatedMethodDetails · split detail (internal split_ratio maps here, largest-remainder) |
+| allocated_resource_id | string | FOCUS: AllocatedResourceId · resource the cost is allocated from |
+| allocated_tags | map | FOCUS: AllocatedTags · tags that drove the allocation |
 | allocated_at | timestamp | Allocation_Run version timestamp |
 
 ### COST_DAILY_SUMMARY
@@ -244,7 +255,7 @@ These tables store configuration, rules, and state that require ACID transaction
 <Tab>
 ### ClickHouse — Analytical Tables (OLAP)
 
-These tables store high-volume billing records and are optimized for aggregation queries. All schemas are aligned to the **FOCUS 1.4** standard.
+These tables store high-volume billing records and are optimized for aggregation queries. All schemas are aligned to the official **FOCUS** column standard, targeting **FOCUS 1.2** as the mandatory baseline (most provider exports — AWS/Azure/GCP — are at v1.2); FOCUS 1.4-only columns are optional/nullable.
 
 | Table | Purpose | Partition Key | Engine |
 | :--- | :--- | :--- | :--- |
@@ -254,7 +265,7 @@ These tables store high-volume billing records and are optimized for aggregation
 
 **Key design decisions:**
 - `FOCUS_NORMALIZED` is **append-only** — raw billing records are never updated. Re-ingestion creates new rows; duplicate handling uses `ReplacingMergeTree` with `ingested_at` as the version key.
-- `ALLOCATED_COST` stores `split_ratio` for shared-cost rows, enabling full auditability of proportional distributions.
+- `ALLOCATED_COST` stores `allocated_method_details` (carrying the internal split ratio) for shared-cost rows, enabling full auditability of proportional distributions.
 - `COST_DAILY_SUMMARY` is a materialized view / scheduled aggregation to serve Dashboard queries at sub-second latency, avoiding full scans on `ALLOCATED_COST` for every chart render.
 - Cross-database joins (PostgreSQL ↔ ClickHouse) are handled at the **application layer** (NestJS), not via DB-level federation, to avoid tight coupling.
 
@@ -266,7 +277,7 @@ These tables store high-volume billing records and are optimized for aggregation
 
 ## 3. FOCUS Column Mapping Reference
 
-The `FOCUS_NORMALIZED` table is the canonical source of truth. Below is the mapping from vendor-specific columns to FOCUS 1.4 standard:
+The `FOCUS_NORMALIZED` table is the canonical source of truth. Below is the mapping from vendor-specific columns to the official FOCUS standard (FOCUS 1.2 mandatory baseline; FPT Cloud has no native FOCUS export so its connector transforms 100% and is validated by a FOCUS conformance check):
 
 | FOCUS Column | AWS CUR | Azure Export | GCP Billing | OpenAI Usage |
 | :--- | :--- | :--- | :--- | :--- |
@@ -275,10 +286,18 @@ The `FOCUS_NORMALIZED` table is the canonical source of truth. Below is the mapp
 | `ProviderName` | `"AWS"` | `"Azure"` | `"GCP"` | `"OpenAI"` |
 | `SubAccountId` | `linkedAccountId` | `subscriptionId` | `project.id` | `organization_id` |
 | `ServiceCategory` | `productFamily` | `meterCategory` | `service.description` | `"AI API"` |
+| `ServiceSubcategory` | `productName` | `meterSubCategory` | `service.id` | `model` |
 | `ServiceName` | `productName` | `meterName` | `sku.description` | `model` |
 | `ResourceId` | `resourceId` | `resourceId` | `resource.name` | — |
 | `ChargeCategory` | `lineItemType` | `ChargeType` | `type` | `"Usage"` |
 | `BillingCurrency` | `currencyCode` | `billingCurrency` | `currency` | `currency` |
+| `ConsumedQuantity` | `UsageAmount` | `Quantity` | `usage.amount` | `n_tokens` |
+| `ConsumedUnit` | `pricingUnit` | `UnitOfMeasure` | `usage.unit` | `"tokens"` |
+| `PricingUnit` | `pricingUnit` | `UnitOfMeasure` | `sku.unit` | `"1K tokens"` |
+| `ChargePeriodStart` | `lineItem/UsageStartDate` | `Date` | `usage_start_time` | `start_time` |
+| `ChargePeriodEnd` | `lineItem/UsageEndDate` | `Date` | `usage_end_time` | `end_time` |
+| `BillingPeriodStart` | `billingPeriodStartDate` | `BillingPeriodStartDate` | `invoice.month` | `period_start` |
+| `BillingPeriodEnd` | `billingPeriodEndDate` | `BillingPeriodEndDate` | `invoice.month` | `period_end` |
 | `Tags` | `resourceTags` | `tags` | `labels` | — |
 
 ---

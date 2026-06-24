@@ -2,7 +2,7 @@
 
 ## Overview
 
-The FinOps Core Engine is a NestJS / TypeScript application that implements the deterministic, fail-closed foundation of the FRT FinOps Platform: ingesting cloud billing data, normalizing it to the FOCUS 1.4 standard, gating it through a data quality framework, and allocating cost to teams via a 100% rule-based engine. This phase delivers **framework and contracts**, not infrastructure. All persistence sits behind repository interfaces backed by local/in-memory implementations, so the entire pipeline runs and is fully testable with no ClickHouse, PostgreSQL, or S3 provisioning.
+The FinOps Core Engine is a NestJS / TypeScript application that implements the deterministic, fail-closed foundation of the FRT FinOps Platform: ingesting cloud billing data, normalizing it to the official FOCUS column standard (FOCUS 1.2 mandatory baseline, FOCUS 1.4 columns optional), gating it through a data quality framework, and allocating cost to teams via a 100% rule-based engine. This phase delivers **framework and contracts**, not infrastructure. All persistence sits behind repository interfaces backed by local/in-memory implementations, so the entire pipeline runs and is fully testable with no ClickHouse, PostgreSQL, or S3 provisioning.
 
 Two principles from the HLD govern the design:
 
@@ -24,6 +24,9 @@ The design follows UC-01 (Daily Billing Data Ingestion) and UC-02 (Cost Allocati
 | **Fail-closed pipeline** | DQ runs after normalization and before any persist. Any failed dimension returns a `failed` DQ_Result and the pipeline halts with zero writes. Allocation never starts for a period whose ingestion halted. |
 | **Pure allocation engine** | The allocation engine is a pure function of `(FOCUS_Record[], AllocationRule[])`. No I/O, clock, or randomness inside the calculation. The clock and persistence are injected at the orchestration boundary, keeping the core deterministic and property-testable. |
 | **Append-only normalized store** | Mirrors the ClickHouse `FOCUS_NORMALIZED` append-only contract from the ERD — prior records are never mutated; successive writes for a period are distinguished by ingestion version. |
+| **FOCUS 1.2 mandatory baseline, 1.4 optional** | The core normalizes to the official FOCUS columns and targets **FOCUS 1.2 as the mandatory baseline** because most provider exports (AWS CUR 2.0, Azure, GCP) emit FOCUS 1.2 today. FOCUS 1.4-only columns (richer Allocation group, Capacity Reservation) are modeled as OPTIONAL/nullable and populated only when a provider supplies them. FPT Cloud has **no native FOCUS export**, so its connector transforms 100% of raw billing into FOCUS and is gated by a conformance check. |
+| **FOCUS conformance gate before DQ** | ETL output is validated against the FOCUS 1.2 mandatory column set (presence + datatype) before the DQ_Framework runs. Non-conformant output fails closed — the pipeline halts before DQ and before any persist, identifying the offending column. This guarantees DQ and allocation only ever see standards-conformant records. |
+| **Official FOCUS column names** | The domain types use the official FOCUS column names (e.g. `ServiceSubcategory`, `ConsumedQuantity`/`ConsumedUnit`/`PricingUnit`, the `ChargePeriod*`/`BillingPeriod*` Timeframe split, and the Allocation group `AllocatedMethodId`/`AllocatedMethodDetails`/`AllocatedResourceId`/`AllocatedTags`) rather than self-invented names, so the schema is portable across FOCUS tooling. `billing_period` (YYYY-MM) is kept as a derived partition convenience from `BillingPeriodStart`. |
 
 ## Architecture
 
@@ -75,7 +78,7 @@ src/
     allocation-rule.ts         # AllocationRule model + RuleType enum
     charge-category.ts         # ChargeCategory enum (Usage|Tax|Credit)
     money.ts                   # Decimal helpers + tolerance comparison
-    errors.ts                  # ValidationError, MappingError, DqFailure, AllocationMismatch
+    errors.ts                  # ValidationError, MappingError, ConformanceError, DqFailure, AllocationMismatch
   connector/
     connector.module.ts
     connector-adapter.ts       # Abstract ConnectorAdapter (fetchRaw, mapToFocus)
@@ -141,10 +144,16 @@ export const UNALLOCATED_TEAM_ID = '__UNALLOCATED__';
 export type Tags = Readonly<Record<string, string>>;
 
 export interface FocusRecord {
-  readonly billingPeriod: string;        // YYYY-MM-DD (partition key)
+  // Timeframe (FOCUS) — charge-level + billing-period granularity
+  readonly chargePeriodStart: string;    // ISO 8601 — ChargePeriodStart
+  readonly chargePeriodEnd: string;      // ISO 8601 — ChargePeriodEnd
+  readonly billingPeriodStart: string;   // ISO 8601 — BillingPeriodStart
+  readonly billingPeriodEnd: string;     // ISO 8601 — BillingPeriodEnd
+  readonly billingPeriod: string;        // YYYY-MM partition key, derived from billingPeriodStart
   readonly providerName: string;
   readonly subAccountId: string;
-  readonly serviceCategory: string;
+  readonly serviceCategory: string;      // canonical FOCUS service domain
+  readonly serviceSubcategory: string;   // raw FPT/provider service group (ServiceSubcategory)
   readonly serviceName: string;
   readonly resourceId: string;
   readonly resourceName: string;
@@ -152,8 +161,12 @@ export interface FocusRecord {
   readonly billedCost: Decimal;          // exact decimal, never float
   readonly effectiveCost: Decimal;
   readonly billingCurrency: string;
+  readonly consumedQuantity: Decimal;    // FOCUS ConsumedQuantity
+  readonly consumedUnit: string;         // FOCUS ConsumedUnit
+  readonly pricingUnit: string;          // FOCUS PricingUnit (replaces self-invented pricing_unit)
   readonly tags: Tags;
-  readonly region: string;
+  readonly regionId: string;             // FOCUS RegionId
+  readonly regionName: string;           // FOCUS RegionName
   readonly sourceRef: string;            // traceability to raw source (maps to s3_source_path)
 }
 
@@ -163,6 +176,7 @@ export interface AllocatedRecord {
   readonly providerName: string;
   readonly subAccountId: string;
   readonly serviceCategory: string;
+  readonly serviceSubcategory: string;
   readonly serviceName: string;
   readonly resourceId: string;
   readonly billedCost: Decimal;
@@ -172,21 +186,25 @@ export interface AllocatedRecord {
   readonly teamId: string;
   readonly businessUnit: string;
   readonly environment: string;          // dev | staging | production
-  readonly allocationRuleId: string;
-  readonly splitMethod: SplitMethod;
-  readonly splitRatio: Decimal;          // 1 for non-shared rows; fraction for shared-cost
+  // FOCUS Allocation group columns
+  readonly allocatedMethodId: string;    // allocation method (maps to applied rule id / rule type)
+  readonly allocatedMethodDetails: string; // method detail; carries internal split_ratio for shared-cost rows
+  readonly allocatedResourceId: string;  // resource the cost is allocated from
+  readonly allocatedTags: Tags;          // tags that drove the allocation
 }
 ```
 
 ### FOCUS_Record Validation
 
-The factory validates required fields (1.5) and constrains `ChargeCategory` (1.6). Missing required fields throw a `ValidationError` naming the field.
+The factory validates the FOCUS 1.2 mandatory fields (1.7) and constrains `ChargeCategory` (1.8). Missing mandatory fields throw a `ValidationError` naming the field. FOCUS 1.4-only columns are optional and may be null (1.9).
 
 ```typescript
 const REQUIRED_FOCUS_FIELDS = [
-  'billingPeriod', 'providerName', 'subAccountId', 'serviceCategory',
-  'serviceName', 'resourceId', 'resourceName', 'chargeCategory',
-  'billedCost', 'effectiveCost', 'billingCurrency', 'region', 'sourceRef',
+  'billingPeriodStart', 'billingPeriodEnd', 'chargePeriodStart', 'chargePeriodEnd',
+  'providerName', 'subAccountId', 'serviceCategory', 'serviceName',
+  'resourceId', 'resourceName', 'chargeCategory', 'billedCost', 'effectiveCost',
+  'billingCurrency', 'consumedQuantity', 'consumedUnit', 'pricingUnit',
+  'regionId', 'sourceRef',
 ] as const;
 
 export function createFocusRecord(input: FocusRecordInput): FocusRecord {
@@ -318,7 +336,7 @@ export class EtlNormalizer {
 }
 ```
 
-`column-mapping.ts` encodes the ERD's FOCUS Column Mapping table (e.g. AWS `UnblendedCost` → `BilledCost`, Azure `Cost` → `BilledCost`, GCP `project.id` → `SubAccountId`).
+`column-mapping.ts` encodes the ERD's FOCUS Column Mapping table (e.g. AWS `UnblendedCost` → `BilledCost`, Azure `Cost` → `BilledCost`, GCP `project.id` → `SubAccountId`). It maps the raw provider service group to `ServiceSubcategory` and resolves the canonical FOCUS domain into `ServiceCategory`, and maps usage/pricing columns to `ConsumedQuantity`/`ConsumedUnit`/`PricingUnit` and the Timeframe columns to `ChargePeriodStart`/`ChargePeriodEnd`/`BillingPeriodStart`/`BillingPeriodEnd`. The normalizer targets the FOCUS 1.2 mandatory baseline; FOCUS 1.4-only columns are emitted only when the provider supplies them.
 
 ### Data Quality Framework
 
@@ -581,21 +599,22 @@ The `Clock` is injected so the engine itself stays pure; only the runner stamps 
 
 The canonical models mirror the ERD:
 
-- **FocusRecord** ↔ `FOCUS_NORMALIZED` (ClickHouse, append-only). `sourceRef` ↔ `s3_source_path`. Successive writes for a period are distinguished by an **ingestion version**; the latest version is the current data (Restatement retains prior versions).
-- **AllocatedRecord** ↔ `ALLOCATED_COST` (ClickHouse). Carries `teamId` (may be `__UNALLOCATED__`), `businessUnit`, `environment`, `allocationRuleId`, `splitMethod`, `splitRatio`. Results are stored under an **Allocation_Run version**; the latest run is the current allocation.
+- **FocusRecord** ↔ `FOCUS_NORMALIZED` (ClickHouse, append-only). `sourceRef` ↔ `s3_source_path`. Carries the official FOCUS columns including `serviceSubcategory`, `consumedQuantity`/`consumedUnit`/`pricingUnit`, and the Timeframe split `chargePeriodStart`/`chargePeriodEnd`/`billingPeriodStart`/`billingPeriodEnd`; `billingPeriod` (YYYY-MM) is derived from `billingPeriodStart` as the partition key. Successive writes for a period are distinguished by an **ingestion version**; the latest version is the current data (Restatement retains prior versions).
+- **AllocatedRecord** ↔ `ALLOCATED_COST` (ClickHouse). Carries `teamId` (may be `__UNALLOCATED__`), `businessUnit`, `environment`, and the FOCUS Allocation columns `allocatedMethodId`, `allocatedMethodDetails` (carries the internal split ratio for shared-cost rows), `allocatedResourceId`, and `allocatedTags`. Results are stored under an **Allocation_Run version**; the latest run is the current allocation.
 - **AllocationRule** ↔ `ALLOCATION_RULE` (PostgreSQL OLTP). `priority` int, lower = higher priority.
 - **AllocationAuditEntry** ↔ allocation-run audit (PostgreSQL append-only audit semantics). Carries the `allocationRunVersion` it describes.
 
-Monetary fields (`billedCost`, `effectiveCost`, `splitRatio`) are `Decimal`. Persistence-layer serialization keeps them as decimal strings to preserve precision when the local impl is later replaced by ClickHouse `Decimal` columns.
+Monetary fields (`billedCost`, `effectiveCost`) and the internal split ratio carried in `allocatedMethodDetails` are `Decimal`. Persistence-layer serialization keeps them as decimal strings to preserve precision when the local impl is later replaced by ClickHouse `Decimal` columns.
 
 ## Error Handling
 
 | Scenario | Handling | Requirement |
 | :--- | :--- | :--- |
-| Missing required FOCUS field | `ValidationError(field)` thrown by `createFocusRecord` | 1.5 |
-| Invalid `ChargeCategory` value | `ValidationError('chargeCategory', value)` | 1.6 |
+| Missing required FOCUS field | `ValidationError(field)` thrown by `createFocusRecord` | 1.7 |
+| Invalid `ChargeCategory` value | `ValidationError('chargeCategory', value)` | 1.8 |
 | Unmappable raw record | `MappingError(rawId)` from `mapToFocus` | 2.5 |
 | Invalid mapped value during normalization | `ValidationError(field, value)` | 3.5 |
+| FOCUS 1.2 conformance failure (missing/wrong-datatype mandatory column) | `ConformanceError(column)`; pipeline halts before DQ, no writes | 8.1, 8.3 |
 | DQ dimension failed | `DqResult{status:'failed', failedDimension, detail}`; pipeline returns `halted`, no writes | 4.6, 4.7, 4.8 |
 | Allocation zero-sum mismatch (per currency) | `ZeroSumResult{currency, status:'failed', discrepancy}` for the failing Currency_Group; runner returns `mismatch` identifying the currency, no `ALLOCATED_COST` write | 5.11 |
 | Ingestion halted on DQ | Allocation never invoked for the period | 7.3 |
@@ -607,7 +626,8 @@ Fail-closed guarantee: the pipeline performs **no** persistence on any DQ failur
 A property is a characteristic that should hold across all valid executions. Property tests use **fast-check** (TypeScript) with a minimum of **100 iterations** per property. Decimal generators produce monetary values as strings fed into `Decimal` to exercise precision. Unit and integration tests cover specific examples, ordering, and structural contracts.
 
 ### Unit / Example Tests
-- FOCUS_Record and Allocated_Record field presence (1.1, 1.3, 1.4).
+- FOCUS_Record and Allocated_Record field presence (1.1, 1.3, 1.6).
+- FOCUS 1.2 conformance gate runs before DQ and halts on a missing/wrong-datatype mandatory column (8.1, 8.3).
 - Connector contract implements `fetchRaw` and `mapToFocus`; mock returns data with no network (2.1, 2.2).
 - Repository interfaces exist with working in-memory impls (6.1, 6.2).
 - Pipeline call order: fetch → normalize → DQ → persist, asserted via a call-order spy (4.1, 7.1).
@@ -633,13 +653,13 @@ Each property test is tagged **Feature: finops-core-engine, Property {n}: {text}
 
 *For any* FOCUS_Record input with exactly one required FOCUS field omitted, construction fails with a validation error whose identified field equals the omitted field.
 
-**Validates: Requirements 1.5**
+**Validates: Requirements 1.7**
 
 ### Property 3: ChargeCategory domain constraint
 
 *For any* string value, FOCUS_Record construction succeeds with respect to charge category if and only if the value is one of Usage, Tax, or Credit.
 
-**Validates: Requirements 1.6**
+**Validates: Requirements 1.8**
 
 ### Property 4: Connector fetch determinism
 
@@ -661,7 +681,7 @@ Each property test is tagged **Feature: finops-core-engine, Property {n}: {text}
 
 ### Property 7: Normalization conformance and traceability
 
-*For any* list of valid raw records, every record produced by the ETL_Normalizer conforms to the FOCUS 1.4 model and carries a non-empty source traceability reference to its raw source.
+*For any* list of valid raw records, every record produced by the ETL_Normalizer conforms to the official FOCUS model (FOCUS 1.2 mandatory baseline) and carries a non-empty source traceability reference to its raw source.
 
 **Validates: Requirements 3.1, 3.2**
 
@@ -727,7 +747,7 @@ Each property test is tagged **Feature: finops-core-engine, Property {n}: {text}
 
 ### Property 18: Attribution fields are stamped
 
-*For any* allocated record, the fields TeamID, BusinessUnit, Environment, allocation_rule_id, split_method, and split_ratio are all populated.
+*For any* allocated record, the fields TeamID, BusinessUnit, Environment, AllocatedMethodId, AllocatedMethodDetails, AllocatedResourceId, and AllocatedTags are all populated.
 
 **Validates: Requirements 5.7**
 

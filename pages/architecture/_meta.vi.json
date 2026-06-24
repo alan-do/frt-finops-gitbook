@@ -4,6 +4,8 @@
     "href": "/architecture"
   },
   "core-engine": "Core Engine (Phân lớp)",
+  "core-build-plan": "Kế hoạch Dựng Core",
+  "tech-stack": "Tech Stack",
   "sdd": "Tài liệu Thiết kế Phần mềm (SDD)",
   "erd": "Sơ đồ Quan hệ Thực thể (ERD)"
 }

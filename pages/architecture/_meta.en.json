@@ -4,6 +4,8 @@
     "href": "/architecture"
   },
   "core-engine": "Core Engine (Layered)",
+  "core-build-plan": "Core Build Plan",
+  "tech-stack": "Tech Stack",
   "sdd": "Software Design Document (SDD)",
   "erd": "Entity Relationship Diagram (ERD)"
 }

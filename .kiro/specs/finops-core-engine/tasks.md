@@ -47,7 +47,7 @@ Team capacity is 1.5 FTE, so tasks are deliberately small and sequenced so a sin
     - **Property 3: ChargeCategory domain constraint** — **Validates: Requirements 1.6**
 
   - [ ] 1.7 Implement Allocated_Record, AllocationRule, SplitMethod types, and the unallocated constant
-    - Create `domain/allocated-record.ts` (FOCUS billing fields + teamId, businessUnit, environment, allocationRuleId, splitMethod, splitRatio)
+    - Create `domain/allocated-record.ts` (FOCUS billing fields + teamId, businessUnit, environment, and FOCUS Allocation columns allocatedMethodId, allocatedMethodDetails, allocatedResourceId, allocatedTags)
     - Create `domain/allocation-rule.ts` with `RuleType` (tag-based | account-based | shared-cost), `SplitMethod`, `MatchCriteria`, and the `AllocationRule` model
     - Add `UNALLOCATED_TEAM_ID = '__UNALLOCATED__'` constant (reserved system team for otherwise-unattributed cost)
     - _Requirements: 1.4, 5.5, 5.7_
